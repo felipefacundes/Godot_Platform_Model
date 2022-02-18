@@ -1,0 +1,1857 @@
+[gd_scene load_steps=57 format=2]
+
+[ext_resource path="res://Assets3D/Stage_01.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Assets3D/Enemy.tscn" type="PackedScene" id=2]
+[ext_resource path="res://Assets3D/Dress_Pink.material" type="Material" id=3]
+[ext_resource path="res://Assets3D/Enemy_02.tscn" type="PackedScene" id=4]
+[ext_resource path="res://Assets3D/Assets3DDJ.tres" type="Animation" id=5]
+[ext_resource path="res://Assets3D/Hair.material" type="Material" id=6]
+[ext_resource path="res://Assets3D/Skin.material" type="Material" id=7]
+[ext_resource path="res://Assets3D/Dress_White.material" type="Material" id=8]
+[ext_resource path="res://Assets3D/Character_Eye.material" type="Material" id=9]
+[ext_resource path="res://Assets3D/Platform_Middle_Shake.tscn" type="PackedScene" id=10]
+[ext_resource path="res://Assets2D/path877.png" type="Texture" id=11]
+[ext_resource path="res://Assets2D/path862.png" type="Texture" id=12]
+[ext_resource path="res://Assets2D/g897.png" type="Texture" id=13]
+[ext_resource path="res://Assets2D/BG3.jpg" type="Texture" id=14]
+[ext_resource path="res://Fonts/Bubblegum.ttf" type="DynamicFontData" id=15]
+
+[sub_resource type="GDScript" id=2]
+script/source = "extends Node
+# Main Script
+
+var Life = 3
+var Crystal = 0
+
+func _ready():
+	pass
+
+################### Damage ###################
+
+func _on_Take_Damage_area_entered(area):
+	if area.name == \"Enemy\":
+		_Damage()
+	
+	if area.name == \"Crystal\":
+		area.get_parent().queue_free()
+		_Crystals()
+			
+func _on_Deal_Damage_area_entered(area):
+	if area.name == \"Die\":
+		get_node(\"Character\").JumpKill()
+		area.get_parent().queue_free()
+		
+	if area.name == \"Mushroom\":
+		get_node(\"Character\").StrongJump()
+		
+	if area.name == \"PlatformMovement\":
+		get_node(\"Character\").Get_Floor_Velocity_True()
+		
+func _physics_process(_delta):
+
+	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_D):
+		pass
+	else:
+		if Life > 0:
+			get_node(\"Cam/Camera\").translation.x = get_node(\"Character\").translation.x
+
+func _Damage():
+	Life -= 1
+	if Life == 2:
+		get_node(\"HUD/Heat 03\").hide()
+	elif Life == 1:
+		get_node(\"HUD/Heat 02\").hide()
+	elif Life == 0:
+		get_node(\"HUD/Heat 01\").hide()
+		get_node(\"Character\").queue_free()
+		get_node(\"GameOver/Anim\").play(\"GameOver\")
+
+func _on_Anim_animation_finished(anim_name):
+	get_tree().reload_current_scene()
+
+func _Crystals():
+	Crystal += 1
+	if Crystal == 1:
+		get_node(\"HUD/Crystal 01\").show()
+	elif Crystal == 2:
+		get_node(\"HUD/Crystal 02\").show()
+	elif Crystal == 3:
+		get_node(\"HUD/Crystal 03\").show()
+	elif Crystal == 4:
+		get_node(\"HUD/Crystal 04\").show()
+		get_node(\"Finish/AnimationPlayer\").play(\"Congratulations\")
+		
+
+
+
+
+func _on_AnimationPlayer_animation_finished(anim_name):
+	get_tree().change_scene(\"res://Assets3D/Main_Stage_01.tscn\")
+"
+
+[sub_resource type="GDScript" id=27]
+script/source = "extends KinematicBody
+# Platform Fall Script
+
+var Time_Fall = 0.3 #Lol, is very bad
+var Time_Respaw = 4.2
+var Velocity = 0
+onready var Init_Pos = transform.origin
+
+func _ready():
+	set_physics_process(false)
+	get_node(\"Fall\").set_wait_time(Time_Fall)
+	get_node(\"Respawn\").set_wait_time(Time_Respaw)
+	
+func _physics_process(delta):
+	Velocity += 0.5
+	translate(Vector3(0, -0.8, 0) * Velocity * delta) 
+	
+	#if get_global_transform().origin.y < -50:
+	#	queue_free()
+
+func _on_Platform_Fall_area_entered(area):
+	get_node(\"Anim\").play(\"Shake\")
+	get_node(\"Fall\").start()
+
+func _on_Platform_Fall_area_exited(area):
+	get_node(\"Anim\").play(\"RESET\")
+	get_node(\"Fall\").stop() #To prevent the platform from falling when exiting 
+	
+func _on_Fall_timeout():
+	set_physics_process(true)
+	get_node(\"Respawn\").start()
+	
+func _on_Respawn_timeout():
+	set_physics_process(false)
+	get_node(\"Anim\").stop()
+	Velocity = 0
+	transform.origin = Init_Pos
+"
+
+[sub_resource type="Animation" id=25]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=26]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=39]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=40]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=41]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=42]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=43]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=44]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=45]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=46]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=28]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=29]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=30]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=31]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=32]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=33]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=36]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="Animation" id=37]
+resource_name = "Shake"
+length = 1.2
+loop = true
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.2, 0.4, 0.6, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ), Vector3( 0, 0, -9 ), Vector3( 0, 0, 9 ), Vector3( 9, 0, 0 ), Vector3( -9, 0, 0 ), Vector3( 0, 0, 0 ) ]
+}
+
+[sub_resource type="DynamicFont" id=47]
+size = 160
+outline_size = 10
+outline_color = Color( 0.0941176, 0.768627, 0.788235, 1 )
+font_data = ExtResource( 15 )
+
+[sub_resource type="Animation" id=48]
+resource_name = "GameOver"
+length = 10.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Label:rect_scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 2.5, 4.5, 9.8 ),
+"transitions": PoolRealArray( 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 0.5, 0.5 ), Vector2( 1, 1 ), Vector2( 1e-05, 1e-05 ) ]
+}
+
+[sub_resource type="Animation" id=49]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath("Label:rect_scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ) ]
+}
+
+[sub_resource type="Animation" id=50]
+resource_name = "Congratulations"
+length = 10.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Label:rect_scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 2.5, 4.5, 9.8 ),
+"transitions": PoolRealArray( 1, 1, 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 0.5, 0.5 ), Vector2( 1, 1 ), Vector2( 1e-05, 1e-05 ) ]
+}
+
+[sub_resource type="ProceduralSky" id=38]
+sky_top_color = Color( 0.611765, 0.74902, 0.827451, 1 )
+sky_horizon_color = Color( 0.909804, 0.945098, 0.972549, 1 )
+sky_energy = 1.1
+ground_bottom_color = Color( 0.835294, 0.835294, 0.835294, 1 )
+ground_horizon_color = Color( 0.94902, 0.972549, 0.972549, 1 )
+sun_latitude = 154.54
+sun_longitude = 32.73
+sun_angle_min = 1.2
+sun_angle_max = 105.0
+
+[sub_resource type="Environment" id=5]
+background_mode = 2
+background_sky = SubResource( 38 )
+ambient_light_color = Color( 1, 1, 1, 1 )
+ambient_light_energy = 1.41
+fog_enabled = true
+fog_color = Color( 0.427451, 0.560784, 0.698039, 1 )
+fog_sun_color = Color( 1, 0.835294, 0.505882, 1 )
+fog_sun_amount = 0.34
+fog_depth_begin = 99.0
+fog_depth_end = 0.0
+ss_reflections_enabled = true
+ssao_enabled = true
+ssao_quality = 2
+ssao_edge_sharpness = 3.0
+adjustment_enabled = true
+adjustment_brightness = 0.89
+adjustment_contrast = 1.05
+adjustment_saturation = 1.09
+
+[sub_resource type="GDScript" id=15]
+script/source = "extends InterpolatedCamera
+
+export(float, 0.0, 1.0) var sensitivity = 0.25
+
+# Mouse state
+var _mouse_position = Vector2(0.0, 0.0)
+var _total_pitch = 0.0
+
+# Movement state
+var _direction = Vector3(0.0, 0.0, 0.0)
+var _velocity = Vector3(0.0, 0.0, 0.0)
+var _acceleration = 8 
+var _deceleration = -4
+var _vel_multiplier = 6
+
+# Keyboard state
+var _w = false
+var _s = false
+var _a = false
+var _d = false
+var _q = false
+var _e = false
+
+func _input(event):
+	# Receives mouse motion
+	if event is InputEventMouseMotion:
+		_mouse_position = event.relative
+	
+	# Receives mouse button input
+	if event is InputEventMouseButton:
+		match event.button_index:
+			BUTTON_RIGHT: # Only allows rotation if right click down
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED if event.pressed else Input.MOUSE_MODE_VISIBLE)
+			BUTTON_WHEEL_UP: # Increases max velocity
+				_vel_multiplier = clamp(_vel_multiplier * 1.1, 0.2, 20)
+			BUTTON_WHEEL_DOWN: # Decereases max velocity
+				_vel_multiplier = clamp(_vel_multiplier / 1.1, 0.2, 20)
+
+	# Receives key input
+	if event is InputEventKey:
+		match event.scancode:
+			KEY_UP:
+				_w = event.pressed
+			KEY_DOWN:
+				_s = event.pressed
+			KEY_W:
+				_w = event.pressed
+			KEY_S:
+				_s = event.pressed
+			KEY_A:
+				_a = event.pressed
+			KEY_D:
+				_d = event.pressed
+			KEY_Q:
+				_q = event.pressed
+			KEY_E:
+				_e = event.pressed
+
+# Updates mouselook and movement every frame
+func _process(delta):
+	_update_mouselook()
+	_update_movement(delta)
+
+# Updates camera movement
+func _update_movement(delta):
+	# Computes desired direction from key states
+	_direction = Vector3(_d as float - _a as float, 
+						 _e as float - _q as float,
+						 _s as float - _w as float)
+	
+	# Computes the change in velocity due to desired direction and \"drag\"
+	# The \"drag\" is a constant acceleration on the camera to bring it's velocity to 0
+	var offset = _direction.normalized() * _acceleration * _vel_multiplier * delta \\
+		+ _velocity.normalized() * _deceleration * _vel_multiplier * delta
+	
+	# Checks if we should bother translating the camera
+	if _direction == Vector3.ZERO and offset.length_squared() > _velocity.length_squared():
+		# Sets the velocity to 0 to prevent jittering due to imperfect deceleration
+		_velocity = Vector3.ZERO
+	else:
+		# Clamps speed to stay within maximum value (_vel_multiplier)
+		_velocity.x = clamp(_velocity.x + offset.x, -_vel_multiplier, _vel_multiplier)
+		_velocity.y = clamp(_velocity.y + offset.y, -_vel_multiplier, _vel_multiplier)
+		_velocity.z = clamp(_velocity.z + offset.z, -_vel_multiplier, _vel_multiplier)
+	
+		translate(_velocity * delta)
+
+# Updates mouse look 
+func _update_mouselook():
+	# Only rotates mouse if the mouse is captured
+	if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		_mouse_position *= sensitivity
+		var yaw = _mouse_position.x
+		var pitch = _mouse_position.y
+		_mouse_position = Vector2(0, 0)
+		
+		# Prevents looking up/down too far
+		pitch = clamp(pitch, -90 - _total_pitch, 90 - _total_pitch)
+		_total_pitch += pitch
+	
+		rotate_y(deg2rad(-yaw))
+		rotate_object_local(Vector3(1,0,0), deg2rad(-pitch))
+"
+
+[sub_resource type="GDScript" id=3]
+script/source = "extends KinematicBody
+# Character Script
+
+var Gravity = 35
+var Speed
+var Walk_Speed = 5.5
+var Sprint_Speed = 15.2
+#var Acceleration = 50
+var Jump_Power = 11.2
+var Jump_Kill = 8
+var Strong_Jump = 20
+var Floor = Vector3(0, 1, 0)
+var Velocity = Vector3()
+var Direction = Vector3()
+var On_Ground = false
+var Spriting = false # Toggle Speed Mode
+var Jump_Count = 0
+var Get_Floor_Velocity = false
+var snap
+
+func _ready():
+	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+
+func JumpKill():
+	Direction.y = Jump_Kill
+
+func StrongJump():
+	Direction.y = Strong_Jump
+	
+func Get_Floor_Velocity_True():
+	Get_Floor_Velocity = true
+
+#move_and_slide(Direction + get_floor_velocity() * delta * -15.25, Floor)
+#############################################################
+################### Gravity and direction ###################
+func _physics_process(delta):
+	if !Get_Floor_Velocity:
+		Direction.normalized();
+		Direction.y -= Gravity * delta; # Gravity
+		move_and_slide(Direction, Floor)
+	elif Get_Floor_Velocity:
+		Direction.y -= 51.21 * delta; # Gravity
+		move_and_slide_with_snap(Direction + get_floor_velocity() * delta * -15.25, Vector3(0, 0, 0), Floor, true)
+
+####################################################
+################### Toggle Speed ###################
+	Speed = Walk_Speed
+	###############
+	#### Method 01 ####
+	#if Input.is_action_just_pressed(\"ui_cancel\") and !Spriting:
+	#	Spriting = true
+	#elif Input.is_action_just_pressed(\"ui_cancel\") and Spriting:
+	#	Spriting = false
+	#if Spriting:
+	#	Speed = Sprint_Speed
+	###################
+	#### Method 02 ####
+	if Input.is_action_pressed(\"ui_cancel\"):
+		Speed = Sprint_Speed
+		Spriting = true
+	else:
+		Speed = Walk_Speed
+		Spriting = false
+
+#############################################
+################### Input ###################
+	if Input.is_action_pressed(\"Quit\"):
+		get_tree().quit()
+
+	if Input.is_action_pressed(\"Key_Escape\"):
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+	if Input.is_action_pressed(\"ui_right\"):
+		Direction.x -= Speed * delta
+		rotation_degrees.y = 0
+	elif Input.is_action_pressed(\"ui_left\"):
+		Direction.x += Speed * delta
+		rotation_degrees.y = 180
+	else:
+		Direction.x = 0
+		#Direction.normalized()  # Skating rink effect
+
+	if Input.is_action_pressed(\"ui_up\"):
+		Direction.z = +3 #Speed * delta
+		rotation_degrees.y = 90
+	elif Input.is_action_pressed(\"ui_down\"):
+		Direction.z = -3 #Speed * delta
+		rotation_degrees.y = -90
+	else:
+		Direction.z = 0
+
+	if Input.is_action_pressed(\"ui_right\") and Input.is_action_pressed(\"ui_up\"):
+		rotation_degrees.y = 45
+	elif Input.is_action_pressed(\"ui_left\") and Input.is_action_pressed(\"ui_up\"):
+		rotation_degrees.y = 135
+	elif Input.is_action_pressed(\"ui_right\") and Input.is_action_pressed(\"ui_down\"):
+		rotation_degrees.y = -45
+	elif Input.is_action_pressed(\"ui_left\") and Input.is_action_pressed(\"ui_down\"):
+		rotation_degrees.y = -135
+
+
+#################################################
+################### Animation ###################
+	if !Spriting:
+		if Input.is_action_pressed(\"ui_right\") or Input.is_action_pressed(\"ui_left\") or Input.is_action_pressed(\"ui_up\") or Input.is_action_pressed(\"ui_down\"):
+			Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+			get_node(\"Anim2\").stop()
+			get_node(\"Anim\").play(\"Walk\")
+		else:
+			get_node(\"Anim2\").stop()
+			get_node(\"Anim\").play(\"Idle\")
+	elif Spriting:
+		if Input.is_action_pressed(\"ui_right\") or Input.is_action_pressed(\"ui_left\") or Input.is_action_pressed(\"ui_up\") or Input.is_action_pressed(\"ui_down\"):
+			Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+			get_node(\"Anim\").stop()
+			get_node(\"Anim2\").play(\"Run\")
+		else:
+			get_node(\"Anim2\").stop()
+			get_node(\"Anim\").play(\"Idle\")
+
+
+###################################################
+################### Double Jump ###################
+	if Input.is_action_just_pressed(\"ui_accept\"):
+		if Jump_Count < 2:
+			Jump_Count += 1;
+			Get_Floor_Velocity = false;
+			Direction.y = Jump_Power;
+			On_Ground = false;
+	elif is_on_floor():
+		On_Ground = true
+		Jump_Count = 0
+		Direction.y = -1
+	else:
+		On_Ground = false
+		if Jump_Count == 1: # One Jump
+			get_node(\"Anim\").play(\"Jump\")
+		elif Jump_Count >= 2: # Double Jump
+			get_node(\"Anim\").play(\"Idle\")
+	
+	if Direction.y > 0:
+		#print(\"Jump\")
+		pass
+	else:
+		#print(\"On Floor\")
+		pass
+
+	if get_global_transform().origin.y < -20.2:
+		get_tree().reload_current_scene()
+"
+
+[sub_resource type="ArrayMesh" id=1]
+resource_name = "Character_Cube"
+surfaces/0 = {
+"aabb": AABB( -0.319825, -1.5032, -1.06222, 0.69531, 2.5047, 2.10687 ),
+"array_data": PoolByteArray( 223, 76, 236, 61, 205, 43, 71, 61, 214, 169, 24, 63, 0, 129, 129, 126, 0, 48, 0, 52, 7, 5, 6, 8, 19, 114, 188, 78, 20, 63, 26, 0, 223, 76, 236, 61, 205, 43, 71, 61, 214, 169, 24, 63, 0, 129, 127, 193, 0, 48, 0, 52, 7, 5, 6, 8, 19, 114, 188, 78, 20, 63, 26, 0, 223, 76, 236, 61, 205, 43, 71, 61, 214, 169, 24, 63, 127, 0, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 19, 114, 188, 78, 20, 63, 26, 0, 223, 76, 236, 61, 205, 43, 71, 61, 214, 169, 24, 63, 127, 0, 0, 127, 0, 54, 0, 0, 7, 5, 6, 8, 19, 114, 188, 78, 20, 63, 26, 0, 223, 76, 236, 61, 35, 217, 91, 62, 214, 169, 24, 63, 0, 126, 0, 63, 0, 59, 0, 52, 7, 5, 6, 8, 218, 114, 34, 74, 145, 66, 113, 0, 223, 76, 236, 61, 35, 217, 91, 62, 214, 169, 24, 63, 0, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 218, 114, 34, 74, 145, 66, 113, 0, 223, 76, 236, 61, 35, 217, 91, 62, 214, 169, 24, 63, 127, 0, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 218, 114, 34, 74, 145, 66, 113, 0, 223, 76, 236, 61, 35, 217, 91, 62, 214, 169, 24, 63, 127, 0, 0, 127, 0, 57, 0, 0, 7, 5, 6, 8, 218, 114, 34, 74, 145, 66, 113, 0, 200, 89, 105, 189, 205, 43, 71, 61, 238, 194, 24, 63, 130, 0, 0, 127, 0, 54, 0, 58, 7, 5, 6, 8, 67, 110, 239, 88, 174, 56, 28, 0, 200, 89, 105, 189, 205, 43, 71, 61, 238, 194, 24, 63, 130, 0, 127, 193, 0, 54, 0, 58, 7, 5, 6, 8, 67, 110, 239, 88, 174, 56, 28, 0, 200, 89, 105, 189, 205, 43, 71, 61, 238, 194, 24, 63, 0, 129, 129, 126, 0, 48, 0, 56, 7, 5, 6, 8, 67, 110, 239, 88, 174, 56, 28, 0, 200, 89, 105, 189, 205, 43, 71, 61, 238, 194, 24, 63, 0, 129, 127, 193, 0, 48, 0, 56, 7, 5, 6, 8, 67, 110, 239, 88, 174, 56, 28, 0, 200, 89, 105, 189, 35, 217, 91, 62, 238, 194, 24, 63, 130, 0, 0, 127, 0, 57, 0, 58, 7, 5, 6, 8, 25, 110, 135, 91, 222, 53, 127, 0, 200, 89, 105, 189, 35, 217, 91, 62, 238, 194, 24, 63, 130, 0, 127, 193, 0, 57, 0, 58, 7, 5, 6, 8, 25, 110, 135, 91, 222, 53, 127, 0, 200, 89, 105, 189, 35, 217, 91, 62, 238, 194, 24, 63, 0, 126, 0, 63, 0, 59, 0, 56, 7, 5, 6, 8, 25, 110, 135, 91, 222, 53, 127, 0, 200, 89, 105, 189, 35, 217, 91, 62, 238, 194, 24, 63, 0, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 25, 110, 135, 91, 222, 53, 127, 0, 231, 99, 234, 61, 206, 43, 71, 61, 12, 60, 61, 62, 129, 126, 0, 127, 0, 54, 0, 52, 6, 5, 8, 0, 255, 135, 254, 119, 0, 0, 0, 0, 231, 99, 234, 61, 206, 43, 71, 61, 12, 60, 61, 62, 0, 129, 129, 126, 0, 54, 0, 52, 6, 5, 8, 0, 255, 135, 254, 119, 0, 0, 0, 0, 231, 99, 234, 61, 206, 43, 71, 61, 12, 60, 61, 62, 127, 0, 0, 127, 0, 54, 0, 52, 6, 5, 8, 0, 255, 135, 254, 119, 0, 0, 0, 0, 231, 99, 234, 61, 35, 217, 91, 62, 12, 60, 61, 62, 129, 126, 0, 127, 0, 57, 0, 52, 6, 5, 8, 1, 172, 210, 42, 45, 27, 0, 13, 0, 231, 99, 234, 61, 35, 217, 91, 62, 12, 60, 61, 62, 0, 126, 0, 63, 0, 57, 0, 52, 6, 5, 8, 1, 172, 210, 42, 45, 27, 0, 13, 0, 231, 99, 234, 61, 35, 217, 91, 62, 12, 60, 61, 62, 127, 0, 0, 127, 0, 57, 0, 52, 6, 5, 8, 1, 172, 210, 42, 45, 27, 0, 13, 0, 184, 43, 109, 189, 206, 43, 71, 61, 229, 168, 61, 62, 130, 0, 0, 127, 0, 54, 0, 56, 5, 6, 7, 8, 30, 164, 219, 86, 144, 3, 116, 1, 184, 43, 109, 189, 206, 43, 71, 61, 229, 168, 61, 62, 129, 126, 0, 127, 0, 54, 0, 56, 5, 6, 7, 8, 30, 164, 219, 86, 144, 3, 116, 1, 184, 43, 109, 189, 206, 43, 71, 61, 229, 168, 61, 62, 0, 129, 129, 126, 0, 54, 0, 56, 5, 6, 7, 8, 30, 164, 219, 86, 144, 3, 116, 1, 184, 43, 109, 189, 35, 217, 91, 62, 229, 168, 61, 62, 130, 0, 0, 127, 0, 57, 0, 56, 5, 6, 8, 0, 138, 220, 73, 35, 42, 0, 0, 0, 184, 43, 109, 189, 35, 217, 91, 62, 229, 168, 61, 62, 129, 126, 0, 127, 0, 57, 0, 56, 5, 6, 8, 0, 138, 220, 73, 35, 42, 0, 0, 0, 184, 43, 109, 189, 35, 217, 91, 62, 229, 168, 61, 62, 0, 126, 0, 63, 0, 57, 0, 56, 5, 6, 8, 0, 138, 220, 73, 35, 42, 0, 0, 0, 221, 250, 101, 189, 205, 43, 71, 61, 143, 103, 105, 63, 130, 0, 127, 193, 0, 54, 0, 58, 7, 5, 6, 8, 29, 171, 221, 48, 167, 34, 91, 1, 221, 250, 101, 189, 205, 43, 71, 61, 143, 103, 105, 63, 129, 126, 127, 63, 0, 54, 0, 58, 7, 5, 6, 8, 29, 171, 221, 48, 167, 34, 91, 1, 221, 250, 101, 189, 205, 43, 71, 61, 143, 103, 105, 63, 130, 130, 127, 63, 0, 48, 0, 56, 7, 5, 6, 8, 29, 171, 221, 48, 167, 34, 91, 1, 221, 250, 101, 189, 205, 43, 71, 61, 143, 103, 105, 63, 0, 129, 127, 193, 0, 48, 0, 56, 7, 5, 6, 8, 29, 171, 221, 48, 167, 34, 91, 1, 83, 252, 237, 61, 205, 43, 71, 61, 119, 78, 105, 63, 129, 126, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 223, 197, 234, 32, 250, 24, 57, 0, 83, 252, 237, 61, 205, 43, 71, 61, 119, 78, 105, 63, 130, 130, 127, 63, 0, 48, 0, 52, 7, 5, 6, 8, 223, 197, 234, 32, 250, 24, 57, 0, 83, 252, 237, 61, 205, 43, 71, 61, 119, 78, 105, 63, 0, 129, 127, 193, 0, 48, 0, 52, 7, 5, 6, 8, 223, 197, 234, 32, 250, 24, 57, 0, 83, 252, 237, 61, 205, 43, 71, 61, 119, 78, 105, 63, 127, 0, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 223, 197, 234, 32, 250, 24, 57, 0, 83, 252, 237, 61, 35, 217, 91, 62, 119, 78, 105, 63, 129, 126, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 125, 187, 34, 37, 193, 28, 157, 2, 83, 252, 237, 61, 35, 217, 91, 62, 119, 78, 105, 63, 130, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 125, 187, 34, 37, 193, 28, 157, 2, 83, 252, 237, 61, 35, 217, 91, 62, 119, 78, 105, 63, 0, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 125, 187, 34, 37, 193, 28, 157, 2, 83, 252, 237, 61, 35, 217, 91, 62, 119, 78, 105, 63, 127, 0, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 125, 187, 34, 37, 193, 28, 157, 2, 221, 250, 101, 189, 35, 217, 91, 62, 143, 103, 105, 63, 130, 0, 127, 193, 0, 57, 0, 58, 7, 5, 6, 8, 75, 178, 168, 44, 91, 31, 175, 1, 221, 250, 101, 189, 35, 217, 91, 62, 143, 103, 105, 63, 129, 126, 127, 63, 0, 57, 0, 58, 7, 5, 6, 8, 75, 178, 168, 44, 91, 31, 175, 1, 221, 250, 101, 189, 35, 217, 91, 62, 143, 103, 105, 63, 130, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 75, 178, 168, 44, 91, 31, 175, 1, 221, 250, 101, 189, 35, 217, 91, 62, 143, 103, 105, 63, 0, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 75, 178, 168, 44, 91, 31, 175, 1, 6, 2, 158, 189, 137, 132, 232, 60, 158, 106, 105, 63, 129, 22, 127, 63, 0, 54, 0, 58, 7, 5, 6, 8, 249, 179, 184, 43, 255, 30, 78, 1, 6, 2, 158, 189, 137, 132, 232, 60, 158, 106, 105, 63, 129, 126, 127, 63, 0, 54, 0, 58, 7, 5, 6, 8, 249, 179, 184, 43, 255, 30, 78, 1, 6, 2, 158, 189, 137, 132, 232, 60, 158, 106, 105, 63, 130, 130, 127, 63, 0, 48, 0, 56, 7, 5, 6, 8, 249, 179, 184, 43, 255, 30, 78, 1, 6, 2, 158, 189, 137, 132, 232, 60, 158, 106, 105, 63, 235, 130, 127, 63, 0, 48, 0, 56, 7, 5, 6, 8, 249, 179, 184, 43, 255, 30, 78, 1, 33, 129, 12, 62, 137, 132, 232, 60, 104, 75, 105, 63, 129, 126, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 151, 204, 158, 28, 185, 21, 16, 1, 33, 129, 12, 62, 137, 132, 232, 60, 104, 75, 105, 63, 130, 130, 127, 63, 0, 48, 0, 52, 7, 5, 6, 8, 151, 204, 158, 28, 185, 21, 16, 1, 33, 129, 12, 62, 137, 132, 232, 60, 104, 75, 105, 63, 235, 130, 127, 63, 0, 48, 0, 52, 7, 5, 6, 8, 151, 204, 158, 28, 185, 21, 16, 1, 33, 129, 12, 62, 137, 132, 232, 60, 104, 75, 105, 63, 127, 22, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 151, 204, 158, 28, 185, 21, 16, 1, 33, 129, 12, 62, 143, 147, 112, 62, 104, 75, 105, 63, 129, 126, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 129, 193, 241, 33, 75, 26, 64, 2, 33, 129, 12, 62, 143, 147, 112, 62, 104, 75, 105, 63, 130, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 129, 193, 241, 33, 75, 26, 64, 2, 33, 129, 12, 62, 143, 147, 112, 62, 104, 75, 105, 63, 235, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 129, 193, 241, 33, 75, 26, 64, 2, 33, 129, 12, 62, 143, 147, 112, 62, 104, 75, 105, 63, 127, 22, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 129, 193, 241, 33, 75, 26, 64, 2, 6, 2, 158, 189, 143, 147, 112, 62, 158, 106, 105, 63, 129, 22, 127, 63, 0, 57, 0, 58, 7, 5, 6, 8, 215, 187, 57, 38, 209, 26, 28, 3, 6, 2, 158, 189, 143, 147, 112, 62, 158, 106, 105, 63, 129, 126, 127, 63, 0, 57, 0, 58, 7, 5, 6, 8, 215, 187, 57, 38, 209, 26, 28, 3, 6, 2, 158, 189, 143, 147, 112, 62, 158, 106, 105, 63, 130, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 215, 187, 57, 38, 209, 26, 28, 3, 6, 2, 158, 189, 143, 147, 112, 62, 158, 106, 105, 63, 235, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 215, 187, 57, 38, 209, 26, 28, 3, 31, 75, 181, 189, 152, 172, 141, 60, 235, 10, 119, 63, 129, 22, 127, 63, 0, 54, 0, 58, 7, 5, 6, 8, 6, 200, 210, 31, 161, 22, 132, 1, 31, 75, 181, 189, 152, 172, 141, 60, 235, 10, 119, 63, 161, 0, 127, 193, 0, 54, 0, 58, 7, 5, 6, 8, 6, 200, 210, 31, 161, 22, 132, 1, 31, 75, 181, 189, 152, 172, 141, 60, 235, 10, 119, 63, 235, 130, 127, 63, 0, 48, 0, 56, 7, 5, 6, 8, 6, 200, 210, 31, 161, 22, 132, 1, 31, 75, 181, 189, 152, 172, 141, 60, 235, 10, 119, 63, 0, 160, 127, 193, 0, 48, 0, 56, 7, 5, 6, 8, 6, 200, 210, 31, 161, 22, 132, 1, 224, 109, 24, 62, 152, 172, 141, 60, 91, 232, 118, 63, 235, 130, 127, 63, 0, 48, 0, 52, 7, 5, 6, 8, 119, 214, 39, 23, 139, 17, 213, 0, 224, 109, 24, 62, 152, 172, 141, 60, 91, 232, 118, 63, 0, 160, 127, 193, 0, 48, 0, 52, 7, 5, 6, 8, 119, 214, 39, 23, 139, 17, 213, 0, 224, 109, 24, 62, 152, 172, 141, 60, 91, 232, 118, 63, 96, 0, 127, 193, 0, 54, 0, 0, 7, 5, 6, 8, 119, 214, 39, 23, 139, 17, 213, 0, 224, 109, 24, 62, 152, 172, 141, 60, 91, 232, 118, 63, 127, 22, 127, 63, 0, 54, 0, 0, 7, 5, 6, 8, 119, 214, 39, 23, 139, 17, 213, 0, 224, 109, 24, 62, 132, 238, 123, 62, 91, 232, 118, 63, 235, 126, 127, 63, 0, 59, 0, 52, 7, 5, 6, 8, 5, 219, 15, 19, 179, 14, 54, 3, 224, 109, 24, 62, 132, 238, 123, 62, 91, 232, 118, 63, 0, 96, 127, 193, 0, 59, 0, 52, 7, 5, 6, 8, 5, 219, 15, 19, 179, 14, 54, 3, 224, 109, 24, 62, 132, 238, 123, 62, 91, 232, 118, 63, 96, 0, 127, 193, 0, 57, 0, 0, 7, 5, 6, 8, 5, 219, 15, 19, 179, 14, 54, 3, 224, 109, 24, 62, 132, 238, 123, 62, 91, 232, 118, 63, 127, 22, 127, 63, 0, 57, 0, 0, 7, 5, 6, 8, 5, 219, 15, 19, 179, 14, 54, 3, 31, 75, 181, 189, 132, 238, 123, 62, 235, 10, 119, 63, 129, 22, 127, 63, 0, 57, 0, 58, 7, 5, 6, 8, 144, 220, 155, 23, 247, 8, 219, 2, 31, 75, 181, 189, 132, 238, 123, 62, 235, 10, 119, 63, 161, 0, 127, 193, 0, 57, 0, 58, 7, 5, 6, 8, 144, 220, 155, 23, 247, 8, 219, 2, 31, 75, 181, 189, 132, 238, 123, 62, 235, 10, 119, 63, 235, 126, 127, 63, 0, 59, 0, 56, 7, 5, 6, 8, 144, 220, 155, 23, 247, 8, 219, 2, 31, 75, 181, 189, 132, 238, 123, 62, 235, 10, 119, 63, 0, 96, 127, 193, 0, 59, 0, 56, 7, 5, 6, 8, 144, 220, 155, 23, 247, 8, 219, 2, 92, 215, 127, 189, 88, 224, 44, 61, 99, 183, 133, 63, 161, 0, 127, 193, 0, 54, 0, 58, 7, 5, 8, 0, 178, 250, 246, 3, 86, 1, 0, 0, 92, 215, 127, 189, 88, 224, 44, 61, 99, 183, 133, 63, 0, 160, 127, 193, 0, 48, 0, 56, 7, 5, 8, 0, 178, 250, 246, 3, 86, 1, 0, 0, 92, 215, 127, 189, 88, 224, 44, 61, 99, 183, 133, 63, 0, 0, 0, 127, 0, 54, 0, 58, 7, 5, 8, 0, 178, 250, 246, 3, 86, 1, 0, 0, 169, 86, 252, 61, 88, 224, 44, 61, 223, 169, 133, 63, 0, 160, 127, 193, 0, 48, 0, 52, 7, 5, 6, 8, 78, 236, 215, 13, 37, 5, 179, 0, 169, 86, 252, 61, 88, 224, 44, 61, 223, 169, 133, 63, 0, 0, 0, 127, 0, 54, 0, 60, 7, 5, 6, 8, 78, 236, 215, 13, 37, 5, 179, 0, 169, 86, 252, 61, 88, 224, 44, 61, 223, 169, 133, 63, 96, 0, 127, 193, 0, 54, 0, 0, 7, 5, 6, 8, 78, 236, 215, 13, 37, 5, 179, 0, 169, 86, 252, 61, 0, 108, 98, 62, 223, 169, 133, 63, 0, 96, 127, 193, 0, 59, 0, 52, 7, 5, 6, 8, 219, 235, 20, 14, 53, 4, 216, 1, 169, 86, 252, 61, 0, 108, 98, 62, 223, 169, 133, 63, 0, 0, 0, 127, 0, 57, 0, 60, 7, 5, 6, 8, 219, 235, 20, 14, 53, 4, 216, 1, 169, 86, 252, 61, 0, 108, 98, 62, 223, 169, 133, 63, 96, 0, 127, 193, 0, 57, 0, 0, 7, 5, 6, 8, 219, 235, 20, 14, 53, 4, 216, 1, 92, 215, 127, 189, 0, 108, 98, 62, 99, 183, 133, 63, 161, 0, 127, 193, 0, 57, 0, 58, 7, 5, 6, 8, 4, 229, 137, 17, 8, 5, 104, 4, 92, 215, 127, 189, 0, 108, 98, 62, 99, 183, 133, 63, 0, 96, 127, 193, 0, 59, 0, 56, 7, 5, 6, 8, 4, 229, 137, 17, 8, 5, 104, 4, 92, 215, 127, 189, 0, 108, 98, 62, 99, 183, 133, 63, 0, 0, 0, 127, 0, 57, 0, 58, 7, 5, 6, 8, 4, 229, 137, 17, 8, 5, 104, 4, 218, 174, 116, 189, 206, 43, 71, 61, 74, 121, 19, 191, 130, 0, 0, 127, 0, 54, 0, 0, 4, 3, 8, 0, 2, 172, 127, 82, 125, 1, 0, 0, 218, 174, 116, 189, 206, 43, 71, 61, 74, 121, 19, 191, 0, 129, 0, 63, 0, 48, 0, 52, 4, 3, 8, 0, 2, 172, 127, 82, 125, 1, 0, 0, 218, 174, 116, 189, 35, 217, 91, 62, 74, 121, 19, 191, 130, 0, 0, 127, 0, 57, 0, 0, 4, 3, 8, 0, 139, 188, 99, 66, 16, 1, 0, 0, 218, 174, 116, 189, 35, 217, 91, 62, 74, 121, 19, 191, 0, 127, 129, 126, 0, 59, 0, 52, 4, 3, 8, 0, 139, 188, 99, 66, 16, 1, 0, 0, 86, 162, 230, 61, 206, 43, 71, 61, 128, 148, 19, 191, 0, 129, 0, 63, 0, 48, 0, 56, 4, 3, 8, 0, 48, 191, 118, 64, 88, 0, 0, 0, 86, 162, 230, 61, 206, 43, 71, 61, 128, 148, 19, 191, 127, 0, 0, 127, 0, 54, 0, 58, 4, 3, 8, 0, 48, 191, 118, 64, 88, 0, 0, 0, 86, 162, 230, 61, 35, 217, 91, 62, 128, 148, 19, 191, 0, 127, 129, 126, 0, 59, 0, 56, 4, 3, 8, 0, 164, 241, 3, 14, 87, 0, 0, 0, 86, 162, 230, 61, 35, 217, 91, 62, 128, 148, 19, 191, 127, 0, 0, 127, 0, 57, 0, 58, 4, 3, 8, 0, 164, 241, 3, 14, 87, 0, 0, 0, 236, 220, 112, 189, 206, 43, 71, 61, 231, 123, 65, 190, 130, 0, 0, 127, 0, 54, 0, 52, 3, 4, 8, 0, 68, 237, 104, 18, 81, 0, 0, 0, 236, 220, 112, 189, 206, 43, 71, 61, 231, 123, 65, 190, 0, 129, 0, 63, 0, 54, 0, 52, 3, 4, 8, 0, 68, 237, 104, 18, 81, 0, 0, 0, 236, 220, 112, 189, 206, 43, 71, 61, 231, 123, 65, 190, 0, 0, 0, 127, 0, 54, 0, 52, 3, 4, 8, 0, 68, 237, 104, 18, 81, 0, 0, 0, 236, 220, 112, 189, 35, 217, 91, 62, 231, 123, 65, 190, 130, 0, 0, 127, 0, 57, 0, 52, 3, 4, 1, 8, 216, 235, 38, 19, 229, 0, 26, 0, 236, 220, 112, 189, 35, 217, 91, 62, 231, 123, 65, 190, 0, 127, 129, 126, 0, 57, 0, 52, 3, 4, 1, 8, 216, 235, 38, 19, 229, 0, 26, 0, 236, 220, 112, 189, 35, 217, 91, 62, 231, 123, 65, 190, 0, 0, 0, 127, 0, 57, 0, 52, 3, 4, 1, 8, 216, 235, 38, 19, 229, 0, 26, 0, 78, 139, 232, 61, 206, 43, 71, 61, 192, 232, 65, 190, 0, 129, 0, 63, 0, 54, 0, 56, 3, 4, 8, 0, 150, 191, 93, 64, 11, 0, 0, 0, 78, 139, 232, 61, 206, 43, 71, 61, 192, 232, 65, 190, 0, 0, 0, 127, 0, 54, 0, 56, 3, 4, 8, 0, 150, 191, 93, 64, 11, 0, 0, 0, 78, 139, 232, 61, 206, 43, 71, 61, 192, 232, 65, 190, 127, 0, 0, 127, 0, 54, 0, 56, 3, 4, 8, 0, 150, 191, 93, 64, 11, 0, 0, 0, 78, 139, 232, 61, 35, 217, 91, 62, 192, 232, 65, 190, 0, 127, 129, 126, 0, 57, 0, 56, 3, 4, 1, 8, 161, 186, 1, 69, 86, 0, 5, 0, 78, 139, 232, 61, 35, 217, 91, 62, 192, 232, 65, 190, 0, 0, 0, 127, 0, 57, 0, 56, 3, 4, 1, 8, 161, 186, 1, 69, 86, 0, 5, 0, 78, 139, 232, 61, 35, 217, 91, 62, 192, 232, 65, 190, 127, 0, 0, 127, 0, 57, 0, 56, 3, 4, 1, 8, 161, 186, 1, 69, 86, 0, 5, 0, 224, 242, 228, 61, 206, 43, 71, 61, 37, 7, 107, 191, 0, 129, 127, 63, 0, 48, 0, 56, 4, 3, 8, 0, 93, 232, 125, 23, 36, 0, 0, 0, 224, 242, 228, 61, 206, 43, 71, 61, 37, 7, 107, 191, 0, 0, 127, 193, 0, 54, 0, 58, 4, 3, 8, 0, 93, 232, 125, 23, 36, 0, 0, 0, 224, 242, 228, 61, 206, 43, 71, 61, 37, 7, 107, 191, 0, 0, 127, 193, 0, 48, 0, 56, 4, 3, 8, 0, 93, 232, 125, 23, 36, 0, 0, 0, 224, 242, 228, 61, 206, 43, 71, 61, 37, 7, 107, 191, 127, 0, 127, 63, 0, 54, 0, 58, 4, 3, 8, 0, 93, 232, 125, 23, 36, 0, 0, 0, 198, 13, 120, 189, 206, 43, 71, 61, 239, 235, 106, 191, 130, 0, 127, 193, 0, 54, 0, 0, 4, 3, 8, 0, 117, 225, 39, 29, 98, 1, 0, 0, 198, 13, 120, 189, 206, 43, 71, 61, 239, 235, 106, 191, 0, 129, 127, 63, 0, 48, 0, 52, 4, 3, 8, 0, 117, 225, 39, 29, 98, 1, 0, 0, 198, 13, 120, 189, 206, 43, 71, 61, 239, 235, 106, 191, 0, 0, 127, 193, 0, 48, 0, 52, 4, 3, 8, 0, 117, 225, 39, 29, 98, 1, 0, 0, 198, 13, 120, 189, 206, 43, 71, 61, 239, 235, 106, 191, 0, 0, 127, 193, 0, 54, 0, 0, 4, 3, 8, 0, 117, 225, 39, 29, 98, 1, 0, 0, 198, 13, 120, 189, 35, 217, 91, 62, 239, 235, 106, 191, 130, 0, 127, 193, 0, 57, 0, 0, 4, 3, 8, 0, 58, 232, 123, 22, 73, 1, 0, 0, 198, 13, 120, 189, 35, 217, 91, 62, 239, 235, 106, 191, 0, 127, 127, 63, 0, 59, 0, 52, 4, 3, 8, 0, 58, 232, 123, 22, 73, 1, 0, 0, 198, 13, 120, 189, 35, 217, 91, 62, 239, 235, 106, 191, 0, 0, 127, 193, 0, 59, 0, 52, 4, 3, 8, 0, 58, 232, 123, 22, 73, 1, 0, 0, 198, 13, 120, 189, 35, 217, 91, 62, 239, 235, 106, 191, 0, 0, 127, 193, 0, 57, 0, 0, 4, 3, 8, 0, 58, 232, 123, 22, 73, 1, 0, 0, 224, 242, 228, 61, 35, 217, 91, 62, 37, 7, 107, 191, 0, 127, 127, 63, 0, 59, 0, 56, 4, 8, 0, 0, 216, 255, 38, 0, 0, 0, 0, 0, 224, 242, 228, 61, 35, 217, 91, 62, 37, 7, 107, 191, 0, 0, 127, 193, 0, 57, 0, 58, 4, 8, 0, 0, 216, 255, 38, 0, 0, 0, 0, 0, 224, 242, 228, 61, 35, 217, 91, 62, 37, 7, 107, 191, 0, 0, 127, 193, 0, 59, 0, 56, 4, 8, 0, 0, 216, 255, 38, 0, 0, 0, 0, 0, 224, 242, 228, 61, 35, 217, 91, 62, 37, 7, 107, 191, 127, 0, 127, 63, 0, 57, 0, 58, 4, 8, 0, 0, 216, 255, 38, 0, 0, 0, 0, 0, 103, 252, 7, 62, 136, 132, 232, 60, 107, 10, 107, 191, 0, 150, 127, 193, 0, 48, 0, 56, 4, 3, 8, 0, 205, 233, 5, 22, 43, 0, 0, 0, 103, 252, 7, 62, 136, 132, 232, 60, 107, 10, 107, 191, 0, 0, 127, 193, 0, 54, 0, 58, 4, 3, 8, 0, 205, 233, 5, 22, 43, 0, 0, 0, 103, 252, 7, 62, 136, 132, 232, 60, 107, 10, 107, 191, 0, 0, 127, 193, 0, 48, 0, 56, 4, 3, 8, 0, 205, 233, 5, 22, 43, 0, 0, 0, 103, 252, 7, 62, 136, 132, 232, 60, 107, 10, 107, 191, 106, 0, 127, 193, 0, 54, 0, 58, 4, 3, 8, 0, 205, 233, 5, 22, 43, 0, 0, 0, 122, 11, 167, 189, 136, 132, 232, 60, 147, 232, 106, 191, 151, 0, 127, 193, 0, 54, 0, 0, 4, 3, 8, 0, 179, 225, 0, 28, 75, 2, 0, 0, 122, 11, 167, 189, 136, 132, 232, 60, 147, 232, 106, 191, 0, 150, 127, 193, 0, 48, 0, 52, 4, 3, 8, 0, 179, 225, 0, 28, 75, 2, 0, 0, 122, 11, 167, 189, 136, 132, 232, 60, 147, 232, 106, 191, 0, 0, 127, 193, 0, 48, 0, 52, 4, 3, 8, 0, 179, 225, 0, 28, 75, 2, 0, 0, 122, 11, 167, 189, 136, 132, 232, 60, 147, 232, 106, 191, 0, 0, 127, 193, 0, 54, 0, 0, 4, 3, 8, 0, 179, 225, 0, 28, 75, 2, 0, 0, 122, 11, 167, 189, 143, 147, 112, 62, 147, 232, 106, 191, 151, 0, 127, 193, 0, 57, 0, 0, 4, 3, 8, 0, 6, 233, 4, 21, 243, 1, 0, 0, 122, 11, 167, 189, 143, 147, 112, 62, 147, 232, 106, 191, 0, 106, 127, 193, 0, 59, 0, 52, 4, 3, 8, 0, 6, 233, 4, 21, 243, 1, 0, 0, 122, 11, 167, 189, 143, 147, 112, 62, 147, 232, 106, 191, 0, 0, 127, 193, 0, 59, 0, 52, 4, 3, 8, 0, 6, 233, 4, 21, 243, 1, 0, 0, 122, 11, 167, 189, 143, 147, 112, 62, 147, 232, 106, 191, 0, 0, 127, 193, 0, 57, 0, 0, 4, 3, 8, 0, 6, 233, 4, 21, 243, 1, 0, 0, 103, 252, 7, 62, 143, 147, 112, 62, 107, 10, 107, 191, 0, 106, 127, 193, 0, 59, 0, 56, 4, 8, 0, 0, 207, 255, 47, 0, 0, 0, 0, 0, 103, 252, 7, 62, 143, 147, 112, 62, 107, 10, 107, 191, 0, 0, 127, 193, 0, 57, 0, 58, 4, 8, 0, 0, 207, 255, 47, 0, 0, 0, 0, 0, 103, 252, 7, 62, 143, 147, 112, 62, 107, 10, 107, 191, 0, 0, 127, 193, 0, 59, 0, 56, 4, 8, 0, 0, 207, 255, 47, 0, 0, 0, 0, 0, 103, 252, 7, 62, 143, 147, 112, 62, 107, 10, 107, 191, 106, 0, 127, 193, 0, 57, 0, 58, 4, 8, 0, 0, 207, 255, 47, 0, 0, 0, 0, 0, 72, 160, 19, 62, 151, 172, 141, 60, 18, 209, 121, 191, 228, 130, 127, 63, 0, 48, 0, 56, 4, 3, 8, 0, 215, 233, 197, 21, 97, 0, 0, 0, 72, 160, 19, 62, 151, 172, 141, 60, 18, 209, 121, 191, 0, 150, 127, 193, 0, 48, 0, 56, 4, 3, 8, 0, 215, 233, 197, 21, 97, 0, 0, 0, 72, 160, 19, 62, 151, 172, 141, 60, 18, 209, 121, 191, 127, 29, 127, 63, 0, 54, 0, 58, 4, 3, 8, 0, 215, 233, 197, 21, 97, 0, 0, 0, 72, 160, 19, 62, 151, 172, 141, 60, 18, 209, 121, 191, 106, 0, 127, 193, 0, 54, 0, 58, 4, 3, 8, 0, 215, 233, 197, 21, 97, 0, 0, 0, 78, 230, 190, 189, 151, 172, 141, 60, 152, 171, 121, 191, 151, 0, 127, 193, 0, 54, 0, 0, 4, 3, 8, 0, 60, 228, 182, 25, 11, 2, 0, 0, 78, 230, 190, 189, 151, 172, 141, 60, 152, 171, 121, 191, 129, 29, 127, 63, 0, 54, 0, 0, 4, 3, 8, 0, 60, 228, 182, 25, 11, 2, 0, 0, 78, 230, 190, 189, 151, 172, 141, 60, 152, 171, 121, 191, 228, 130, 127, 63, 0, 48, 0, 52, 4, 3, 8, 0, 60, 228, 182, 25, 11, 2, 0, 0, 78, 230, 190, 189, 151, 172, 141, 60, 152, 171, 121, 191, 0, 150, 127, 193, 0, 48, 0, 52, 4, 3, 8, 0, 60, 228, 182, 25, 11, 2, 0, 0, 78, 230, 190, 189, 132, 238, 123, 62, 152, 171, 121, 191, 151, 0, 127, 193, 0, 57, 0, 0, 4, 3, 8, 0, 26, 236, 241, 17, 243, 1, 0, 0, 78, 230, 190, 189, 132, 238, 123, 62, 152, 171, 121, 191, 129, 29, 127, 63, 0, 57, 0, 0, 4, 3, 8, 0, 26, 236, 241, 17, 243, 1, 0, 0, 78, 230, 190, 189, 132, 238, 123, 62, 152, 171, 121, 191, 228, 126, 127, 63, 0, 59, 0, 52, 4, 3, 8, 0, 26, 236, 241, 17, 243, 1, 0, 0, 78, 230, 190, 189, 132, 238, 123, 62, 152, 171, 121, 191, 0, 106, 127, 193, 0, 59, 0, 52, 4, 3, 8, 0, 26, 236, 241, 17, 243, 1, 0, 0, 72, 160, 19, 62, 132, 238, 123, 62, 18, 209, 121, 191, 228, 126, 127, 63, 0, 59, 0, 56, 4, 3, 8, 0, 172, 253, 0, 2, 82, 0, 0, 0, 72, 160, 19, 62, 132, 238, 123, 62, 18, 209, 121, 191, 0, 106, 127, 193, 0, 59, 0, 56, 4, 3, 8, 0, 172, 253, 0, 2, 82, 0, 0, 0, 72, 160, 19, 62, 132, 238, 123, 62, 18, 209, 121, 191, 127, 29, 127, 63, 0, 57, 0, 58, 4, 3, 8, 0, 172, 253, 0, 2, 82, 0, 0, 0, 72, 160, 19, 62, 132, 238, 123, 62, 18, 209, 121, 191, 106, 0, 127, 193, 0, 57, 0, 58, 4, 3, 8, 0, 172, 253, 0, 2, 82, 0, 0, 0, 32, 225, 241, 61, 89, 224, 44, 61, 177, 246, 135, 191, 129, 126, 0, 127, 0, 54, 0, 58, 4, 3, 8, 0, 59, 236, 132, 19, 63, 0, 0, 0, 32, 225, 241, 61, 89, 224, 44, 61, 177, 246, 135, 191, 228, 130, 127, 63, 0, 48, 0, 56, 4, 3, 8, 0, 59, 236, 132, 19, 63, 0, 0, 0, 32, 225, 241, 61, 89, 224, 44, 61, 177, 246, 135, 191, 127, 29, 127, 63, 0, 54, 0, 58, 4, 3, 8, 0, 59, 236, 132, 19, 63, 0, 0, 0, 55, 97, 138, 189, 89, 224, 44, 61, 9, 232, 135, 191, 129, 29, 127, 63, 0, 54, 0, 0, 4, 3, 8, 0, 112, 233, 197, 19, 201, 2, 0, 0, 55, 97, 138, 189, 89, 224, 44, 61, 9, 232, 135, 191, 129, 126, 0, 127, 0, 54, 0, 60, 4, 3, 8, 0, 112, 233, 197, 19, 201, 2, 0, 0, 55, 97, 138, 189, 89, 224, 44, 61, 9, 232, 135, 191, 228, 130, 127, 63, 0, 48, 0, 52, 4, 3, 8, 0, 112, 233, 197, 19, 201, 2, 0, 0, 55, 97, 138, 189, 0, 108, 98, 62, 9, 232, 135, 191, 129, 29, 127, 63, 0, 57, 0, 0, 4, 8, 3, 0, 123, 246, 93, 5, 38, 4, 0, 0, 55, 97, 138, 189, 0, 108, 98, 62, 9, 232, 135, 191, 129, 126, 0, 127, 0, 57, 0, 60, 4, 8, 3, 0, 123, 246, 93, 5, 38, 4, 0, 0, 55, 97, 138, 189, 0, 108, 98, 62, 9, 232, 135, 191, 228, 126, 127, 63, 0, 59, 0, 52, 4, 8, 3, 0, 123, 246, 93, 5, 38, 4, 0, 0, 32, 225, 241, 61, 0, 108, 98, 62, 177, 246, 135, 191, 129, 126, 0, 127, 0, 57, 0, 58, 4, 3, 8, 0, 145, 246, 118, 6, 246, 2, 0, 0, 32, 225, 241, 61, 0, 108, 98, 62, 177, 246, 135, 191, 228, 126, 127, 63, 0, 59, 0, 56, 4, 3, 8, 0, 145, 246, 118, 6, 246, 2, 0, 0, 32, 225, 241, 61, 0, 108, 98, 62, 177, 246, 135, 191, 127, 29, 127, 63, 0, 57, 0, 58, 4, 3, 8, 0, 145, 246, 118, 6, 246, 2, 0, 0, 114, 245, 194, 61, 217, 104, 192, 191, 140, 42, 30, 190, 0, 0, 127, 193, 0, 57, 0, 60, 11, 10, 0, 0, 107, 253, 147, 2, 0, 0, 0, 0, 114, 245, 194, 61, 217, 104, 192, 191, 140, 42, 30, 190, 127, 0, 127, 63, 0, 57, 0, 0, 11, 10, 0, 0, 107, 253, 147, 2, 0, 0, 0, 0, 20, 1, 37, 189, 217, 104, 192, 191, 253, 212, 29, 190, 130, 0, 127, 193, 0, 57, 0, 58, 11, 10, 0, 0, 13, 242, 241, 13, 0, 0, 0, 0, 20, 1, 37, 189, 217, 104, 192, 191, 253, 212, 29, 190, 0, 0, 127, 193, 0, 57, 0, 58, 11, 10, 0, 0, 13, 242, 241, 13, 0, 0, 0, 0, 82, 87, 38, 189, 217, 104, 192, 191, 210, 71, 148, 190, 130, 0, 127, 193, 0, 57, 0, 56, 11, 10, 0, 0, 189, 236, 65, 19, 0, 0, 0, 0, 82, 87, 38, 189, 217, 104, 192, 191, 210, 71, 148, 190, 129, 126, 127, 63, 0, 57, 0, 56, 11, 10, 0, 0, 189, 236, 65, 19, 0, 0, 0, 0, 84, 74, 194, 61, 217, 104, 192, 191, 154, 114, 148, 190, 129, 126, 127, 63, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 84, 74, 194, 61, 217, 104, 192, 191, 154, 114, 148, 190, 127, 0, 127, 63, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 114, 245, 194, 61, 3, 190, 147, 191, 140, 42, 30, 190, 0, 0, 127, 193, 0, 57, 0, 60, 10, 11, 0, 0, 244, 163, 10, 92, 0, 0, 0, 0, 114, 245, 194, 61, 3, 190, 147, 191, 140, 42, 30, 190, 127, 0, 127, 63, 0, 57, 0, 0, 10, 11, 0, 0, 244, 163, 10, 92, 0, 0, 0, 0, 20, 1, 37, 189, 3, 190, 147, 191, 253, 212, 29, 190, 130, 0, 127, 193, 0, 57, 0, 58, 10, 11, 0, 0, 172, 230, 82, 25, 0, 0, 0, 0, 20, 1, 37, 189, 3, 190, 147, 191, 253, 212, 29, 190, 0, 0, 127, 193, 0, 57, 0, 58, 10, 11, 0, 0, 172, 230, 82, 25, 0, 0, 0, 0, 82, 87, 38, 189, 3, 190, 147, 191, 210, 71, 148, 190, 130, 0, 127, 193, 0, 57, 0, 56, 10, 11, 0, 0, 23, 165, 231, 90, 0, 0, 0, 0, 82, 87, 38, 189, 3, 190, 147, 191, 210, 71, 148, 190, 129, 126, 127, 63, 0, 57, 0, 56, 10, 11, 0, 0, 23, 165, 231, 90, 0, 0, 0, 0, 84, 74, 194, 61, 3, 190, 147, 191, 154, 114, 148, 190, 129, 126, 127, 63, 0, 57, 0, 52, 10, 11, 0, 0, 45, 131, 209, 124, 0, 0, 0, 0, 84, 74, 194, 61, 3, 190, 147, 191, 154, 114, 148, 190, 127, 0, 127, 63, 0, 57, 0, 52, 10, 11, 0, 0, 45, 131, 209, 124, 0, 0, 0, 0, 84, 38, 197, 61, 217, 104, 192, 191, 0, 70, 148, 62, 0, 0, 127, 193, 0, 57, 0, 60, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 84, 38, 197, 61, 217, 104, 192, 191, 0, 70, 148, 62, 127, 0, 127, 63, 0, 57, 0, 0, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 82, 159, 32, 189, 217, 104, 192, 191, 199, 112, 148, 62, 130, 0, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 82, 159, 32, 189, 217, 104, 192, 191, 199, 112, 148, 62, 0, 0, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 143, 245, 33, 189, 217, 104, 192, 191, 232, 38, 30, 62, 130, 0, 127, 193, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 143, 245, 33, 189, 217, 104, 192, 191, 232, 38, 30, 62, 129, 126, 127, 63, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 53, 123, 196, 61, 217, 104, 192, 191, 89, 209, 29, 62, 129, 126, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 233, 255, 21, 0, 0, 0, 0, 0, 53, 123, 196, 61, 217, 104, 192, 191, 89, 209, 29, 62, 127, 0, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 233, 255, 21, 0, 0, 0, 0, 0, 84, 38, 197, 61, 3, 190, 147, 191, 0, 70, 148, 62, 0, 0, 127, 193, 0, 57, 0, 60, 9, 8, 0, 0, 189, 255, 65, 0, 0, 0, 0, 0, 84, 38, 197, 61, 3, 190, 147, 191, 0, 70, 148, 62, 127, 0, 127, 63, 0, 57, 0, 0, 9, 8, 0, 0, 189, 255, 65, 0, 0, 0, 0, 0, 82, 159, 32, 189, 3, 190, 147, 191, 199, 112, 148, 62, 130, 0, 127, 193, 0, 57, 0, 58, 9, 8, 0, 0, 235, 255, 19, 0, 0, 0, 0, 0, 82, 159, 32, 189, 3, 190, 147, 191, 199, 112, 148, 62, 0, 0, 127, 193, 0, 57, 0, 58, 9, 8, 0, 0, 235, 255, 19, 0, 0, 0, 0, 0, 143, 245, 33, 189, 3, 190, 147, 191, 232, 38, 30, 62, 130, 0, 127, 193, 0, 57, 0, 56, 9, 8, 0, 0, 53, 255, 201, 0, 0, 0, 0, 0, 143, 245, 33, 189, 3, 190, 147, 191, 232, 38, 30, 62, 129, 126, 127, 63, 0, 57, 0, 56, 9, 8, 0, 0, 53, 255, 201, 0, 0, 0, 0, 0, 53, 123, 196, 61, 3, 190, 147, 191, 89, 209, 29, 62, 129, 126, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 163, 250, 91, 5, 0, 0, 0, 0, 53, 123, 196, 61, 3, 190, 147, 191, 89, 209, 29, 62, 127, 0, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 163, 250, 91, 5, 0, 0, 0, 0, 158, 86, 164, 62, 39, 116, 170, 62, 9, 245, 149, 62, 0, 129, 129, 126, 160, 48, 80, 52, 1, 8, 0, 0, 245, 255, 9, 0, 0, 0, 0, 0, 158, 86, 164, 62, 39, 116, 170, 62, 9, 245, 149, 62, 0, 184, 184, 1, 160, 48, 80, 52, 1, 8, 0, 0, 245, 255, 9, 0, 0, 0, 0, 0, 158, 86, 164, 62, 39, 116, 170, 62, 9, 245, 149, 62, 54, 184, 129, 1, 160, 48, 80, 52, 1, 8, 0, 0, 245, 255, 9, 0, 0, 0, 0, 0, 61, 29, 184, 62, 51, 50, 185, 62, 19, 163, 169, 62, 0, 184, 184, 1, 0, 48, 23, 52, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 61, 29, 184, 62, 51, 50, 185, 62, 19, 163, 169, 62, 0, 233, 255, 114, 0, 54, 244, 59, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 61, 29, 184, 62, 51, 50, 185, 62, 19, 163, 169, 62, 54, 184, 129, 1, 47, 48, 0, 52, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 61, 29, 184, 62, 51, 50, 185, 62, 19, 163, 169, 62, 103, 233, 23, 114, 0, 54, 227, 29, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 158, 86, 164, 62, 21, 49, 128, 63, 9, 245, 149, 62, 0, 127, 0, 63, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 158, 86, 164, 62, 21, 49, 128, 63, 9, 245, 149, 62, 0, 72, 0, 36, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 158, 86, 164, 62, 21, 49, 128, 63, 9, 245, 149, 62, 54, 72, 0, 63, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 61, 29, 184, 62, 40, 3, 121, 63, 19, 163, 169, 62, 0, 72, 0, 36, 0, 59, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 61, 29, 184, 62, 40, 3, 121, 63, 19, 163, 169, 62, 0, 23, 29, 123, 0, 57, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 61, 29, 184, 62, 40, 3, 121, 63, 19, 163, 169, 62, 54, 72, 0, 63, 244, 58, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 61, 29, 184, 62, 40, 3, 121, 63, 19, 163, 169, 62, 103, 23, 233, 115, 0, 57, 227, 29, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 135, 30, 135, 190, 39, 116, 170, 62, 185, 173, 150, 62, 202, 184, 129, 1, 160, 48, 175, 55, 1, 8, 0, 0, 127, 247, 127, 8, 0, 0, 0, 0, 135, 30, 135, 190, 39, 116, 170, 62, 185, 173, 150, 62, 0, 129, 129, 126, 160, 48, 175, 55, 1, 8, 0, 0, 127, 247, 127, 8, 0, 0, 0, 0, 135, 30, 135, 190, 39, 116, 170, 62, 185, 173, 150, 62, 0, 184, 184, 1, 160, 48, 175, 55, 1, 8, 0, 0, 127, 247, 127, 8, 0, 0, 0, 0, 210, 204, 154, 190, 51, 50, 185, 62, 24, 116, 170, 62, 153, 233, 233, 115, 0, 54, 244, 57, 1, 8, 0, 0, 217, 253, 37, 2, 0, 0, 0, 0, 210, 204, 154, 190, 51, 50, 185, 62, 24, 116, 170, 62, 202, 184, 129, 1, 47, 48, 0, 56, 1, 8, 0, 0, 217, 253, 37, 2, 0, 0, 0, 0, 210, 204, 154, 190, 51, 50, 185, 62, 24, 116, 170, 62, 0, 184, 184, 1, 0, 48, 232, 55, 1, 8, 0, 0, 217, 253, 37, 2, 0, 0, 0, 0, 210, 204, 154, 190, 51, 50, 185, 62, 24, 116, 170, 62, 0, 233, 7, 112, 0, 54, 11, 58, 1, 8, 0, 0, 217, 253, 37, 2, 0, 0, 0, 0, 135, 30, 135, 190, 21, 49, 128, 63, 185, 173, 150, 62, 202, 72, 0, 63, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 135, 30, 135, 190, 21, 49, 128, 63, 185, 173, 150, 62, 0, 127, 0, 63, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 135, 30, 135, 190, 21, 49, 128, 63, 185, 173, 150, 62, 0, 72, 0, 36, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 210, 204, 154, 190, 40, 3, 121, 63, 24, 116, 170, 62, 202, 72, 0, 63, 244, 58, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 210, 204, 154, 190, 40, 3, 121, 63, 24, 116, 170, 62, 0, 72, 0, 36, 0, 59, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 210, 204, 154, 190, 40, 3, 121, 63, 24, 116, 170, 62, 0, 23, 231, 126, 0, 57, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 157, 163, 62, 39, 116, 170, 62, 69, 128, 149, 190, 202, 130, 184, 126, 175, 53, 80, 52, 1, 8, 0, 0, 206, 255, 48, 0, 0, 0, 0, 0, 238, 157, 163, 62, 39, 116, 170, 62, 69, 128, 149, 190, 0, 129, 129, 126, 175, 53, 80, 52, 1, 8, 0, 0, 206, 255, 48, 0, 0, 0, 0, 0, 238, 157, 163, 62, 39, 116, 170, 62, 69, 128, 149, 190, 54, 184, 130, 1, 175, 53, 80, 52, 1, 8, 0, 0, 206, 255, 48, 0, 0, 0, 0, 0, 55, 76, 183, 62, 51, 50, 185, 62, 186, 70, 169, 190, 153, 130, 227, 123, 0, 54, 23, 52, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 55, 76, 183, 62, 51, 50, 185, 62, 186, 70, 169, 190, 202, 130, 184, 126, 0, 54, 23, 52, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 55, 76, 183, 62, 51, 50, 185, 62, 186, 70, 169, 190, 54, 184, 130, 1, 232, 53, 0, 52, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 55, 76, 183, 62, 51, 50, 185, 62, 186, 70, 169, 190, 103, 233, 23, 115, 0, 54, 208, 51, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 238, 157, 163, 62, 21, 49, 128, 63, 69, 128, 149, 190, 202, 126, 0, 90, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 157, 163, 62, 21, 49, 128, 63, 69, 128, 149, 190, 0, 127, 0, 63, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 157, 163, 62, 21, 49, 128, 63, 69, 128, 149, 190, 54, 72, 0, 63, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 76, 183, 62, 40, 3, 121, 63, 186, 70, 169, 190, 153, 126, 1, 114, 0, 57, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 76, 183, 62, 40, 3, 121, 63, 186, 70, 169, 190, 202, 126, 0, 90, 0, 57, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 76, 183, 62, 40, 3, 121, 63, 186, 70, 169, 190, 54, 72, 0, 63, 11, 57, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 76, 183, 62, 40, 3, 121, 63, 186, 70, 169, 190, 103, 23, 232, 115, 0, 57, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 215, 135, 190, 39, 116, 170, 62, 149, 199, 148, 190, 202, 184, 129, 1, 175, 53, 175, 55, 1, 8, 0, 0, 170, 249, 84, 6, 0, 0, 0, 0, 55, 215, 135, 190, 39, 116, 170, 62, 149, 199, 148, 190, 202, 130, 184, 126, 175, 53, 175, 55, 1, 8, 0, 0, 170, 249, 84, 6, 0, 0, 0, 0, 55, 215, 135, 190, 39, 116, 170, 62, 149, 199, 148, 190, 0, 129, 129, 126, 175, 53, 175, 55, 1, 8, 0, 0, 170, 249, 84, 6, 0, 0, 0, 0, 215, 157, 155, 190, 51, 50, 185, 62, 180, 117, 168, 190, 153, 233, 233, 114, 0, 54, 11, 56, 1, 8, 0, 0, 89, 254, 165, 1, 0, 0, 0, 0, 215, 157, 155, 190, 51, 50, 185, 62, 180, 117, 168, 190, 202, 184, 129, 1, 232, 53, 0, 56, 1, 8, 0, 0, 89, 254, 165, 1, 0, 0, 0, 0, 215, 157, 155, 190, 51, 50, 185, 62, 180, 117, 168, 190, 153, 130, 24, 126, 0, 54, 232, 55, 1, 8, 0, 0, 89, 254, 165, 1, 0, 0, 0, 0, 215, 157, 155, 190, 51, 50, 185, 62, 180, 117, 168, 190, 202, 130, 184, 126, 0, 54, 232, 55, 1, 8, 0, 0, 89, 254, 165, 1, 0, 0, 0, 0, 55, 215, 135, 190, 21, 49, 128, 63, 149, 199, 148, 190, 202, 72, 0, 63, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 215, 135, 190, 21, 49, 128, 63, 149, 199, 148, 190, 202, 126, 0, 90, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 55, 215, 135, 190, 21, 49, 128, 63, 149, 199, 148, 190, 0, 127, 0, 63, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 215, 157, 155, 190, 40, 3, 121, 63, 180, 117, 168, 190, 202, 72, 0, 63, 11, 57, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 215, 157, 155, 190, 40, 3, 121, 63, 180, 117, 168, 190, 153, 126, 250, 112, 0, 57, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 215, 157, 155, 190, 40, 3, 121, 63, 180, 117, 168, 190, 202, 126, 0, 90, 0, 57, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 143, 201, 220, 62, 43, 15, 154, 62, 86, 252, 0, 120, 86, 54, 0, 60, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 143, 201, 220, 62, 43, 15, 154, 62, 89, 0, 0, 127, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 143, 201, 220, 62, 43, 15, 154, 62, 103, 233, 23, 115, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 143, 201, 220, 62, 43, 15, 154, 62, 127, 0, 0, 127, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 63, 147, 168, 62, 143, 201, 220, 62, 140, 216, 177, 62, 0, 233, 0, 115, 150, 54, 221, 59, 1, 8, 0, 0, 247, 255, 7, 0, 0, 0, 0, 0, 63, 147, 168, 62, 143, 201, 220, 62, 140, 216, 177, 62, 0, 0, 0, 127, 150, 54, 221, 59, 1, 8, 0, 0, 247, 255, 7, 0, 0, 0, 0, 0, 63, 147, 168, 62, 143, 201, 220, 62, 140, 216, 177, 62, 36, 252, 0, 124, 150, 54, 221, 59, 1, 8, 0, 0, 247, 255, 7, 0, 0, 0, 0, 0, 63, 147, 168, 62, 143, 201, 220, 62, 140, 216, 177, 62, 37, 0, 0, 127, 150, 54, 221, 59, 1, 8, 0, 0, 247, 255, 7, 0, 0, 0, 0, 0, 233, 29, 184, 62, 112, 54, 185, 62, 20, 164, 169, 62, 0, 233, 252, 113, 0, 54, 244, 59, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 233, 29, 184, 62, 112, 54, 185, 62, 20, 164, 169, 62, 36, 252, 0, 124, 0, 54, 244, 59, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 233, 29, 184, 62, 112, 54, 185, 62, 20, 164, 169, 62, 86, 252, 0, 120, 0, 54, 244, 59, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 233, 29, 184, 62, 112, 54, 185, 62, 20, 164, 169, 62, 103, 233, 23, 115, 0, 54, 226, 29, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 128, 86, 185, 62, 143, 201, 220, 62, 255, 218, 170, 62, 36, 252, 0, 124, 150, 54, 245, 59, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 143, 201, 220, 62, 255, 218, 170, 62, 37, 0, 0, 127, 150, 54, 0, 60, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 143, 201, 220, 62, 255, 218, 170, 62, 86, 252, 0, 120, 150, 54, 245, 59, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 143, 201, 220, 62, 255, 218, 170, 62, 89, 0, 0, 127, 150, 54, 0, 0, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 63, 147, 168, 62, 123, 55, 103, 63, 140, 216, 177, 62, 0, 23, 233, 126, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 63, 147, 168, 62, 123, 55, 103, 63, 140, 216, 177, 62, 0, 0, 0, 127, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 63, 147, 168, 62, 123, 55, 103, 63, 140, 216, 177, 62, 36, 4, 251, 126, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 63, 147, 168, 62, 123, 55, 103, 63, 140, 216, 177, 62, 37, 0, 0, 127, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 123, 55, 103, 63, 43, 15, 154, 62, 86, 4, 21, 125, 208, 56, 251, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 123, 55, 103, 63, 43, 15, 154, 62, 89, 0, 0, 127, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 123, 55, 103, 63, 43, 15, 154, 62, 103, 23, 233, 115, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 134, 63, 192, 62, 123, 55, 103, 63, 43, 15, 154, 62, 127, 0, 0, 127, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 233, 29, 184, 62, 5, 1, 121, 63, 20, 164, 169, 62, 0, 23, 26, 125, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 233, 29, 184, 62, 5, 1, 121, 63, 20, 164, 169, 62, 36, 4, 251, 126, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 233, 29, 184, 62, 5, 1, 121, 63, 20, 164, 169, 62, 86, 4, 21, 125, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 233, 29, 184, 62, 5, 1, 121, 63, 20, 164, 169, 62, 103, 23, 232, 115, 255, 56, 226, 29, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 123, 55, 103, 63, 255, 218, 170, 62, 36, 4, 251, 126, 180, 56, 245, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 123, 55, 103, 63, 255, 218, 170, 62, 37, 0, 0, 127, 180, 56, 0, 60, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 123, 55, 103, 63, 255, 218, 170, 62, 86, 4, 21, 125, 180, 56, 245, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 128, 86, 185, 62, 123, 55, 103, 63, 255, 218, 170, 62, 89, 0, 0, 127, 180, 56, 0, 0, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 191, 56, 139, 190, 143, 201, 220, 62, 97, 150, 178, 62, 219, 0, 0, 127, 150, 54, 34, 58, 1, 8, 0, 0, 192, 253, 62, 2, 0, 0, 0, 0, 191, 56, 139, 190, 143, 201, 220, 62, 97, 150, 178, 62, 221, 252, 0, 124, 150, 54, 34, 58, 1, 8, 0, 0, 192, 253, 62, 2, 0, 0, 0, 0, 191, 56, 139, 190, 143, 201, 220, 62, 97, 150, 178, 62, 0, 233, 0, 115, 150, 54, 34, 58, 1, 8, 0, 0, 192, 253, 62, 2, 0, 0, 0, 0, 191, 56, 139, 190, 143, 201, 220, 62, 97, 150, 178, 62, 0, 0, 0, 127, 150, 54, 34, 58, 1, 8, 0, 0, 192, 253, 62, 2, 0, 0, 0, 0, 76, 2, 163, 190, 143, 201, 220, 62, 69, 234, 154, 62, 130, 0, 0, 127, 150, 54, 221, 57, 1, 8, 0, 0, 48, 255, 206, 0, 0, 0, 0, 0, 76, 2, 163, 190, 143, 201, 220, 62, 69, 234, 154, 62, 153, 233, 233, 115, 150, 54, 221, 57, 1, 8, 0, 0, 48, 255, 206, 0, 0, 0, 0, 0, 76, 2, 163, 190, 143, 201, 220, 62, 69, 234, 154, 62, 167, 0, 0, 127, 150, 54, 221, 57, 1, 8, 0, 0, 48, 255, 206, 0, 0, 0, 0, 0, 76, 2, 163, 190, 143, 201, 220, 62, 69, 234, 154, 62, 170, 252, 2, 116, 94, 54, 4, 58, 1, 8, 0, 0, 48, 255, 206, 0, 0, 0, 0, 0, 125, 205, 154, 190, 112, 54, 185, 62, 27, 117, 170, 62, 153, 233, 233, 114, 0, 54, 244, 57, 1, 8, 0, 0, 125, 254, 129, 1, 0, 0, 0, 0, 125, 205, 154, 190, 112, 54, 185, 62, 27, 117, 170, 62, 170, 252, 2, 116, 0, 54, 11, 58, 1, 8, 0, 0, 125, 254, 129, 1, 0, 0, 0, 0, 125, 205, 154, 190, 112, 54, 185, 62, 27, 117, 170, 62, 221, 252, 0, 124, 0, 54, 11, 58, 1, 8, 0, 0, 125, 254, 129, 1, 0, 0, 0, 0, 125, 205, 154, 190, 112, 54, 185, 62, 27, 117, 170, 62, 0, 233, 3, 113, 0, 54, 11, 58, 1, 8, 0, 0, 125, 254, 129, 1, 0, 0, 0, 0, 146, 4, 156, 190, 143, 201, 220, 62, 134, 173, 171, 62, 167, 0, 0, 127, 150, 54, 0, 58, 1, 8, 0, 0, 16, 254, 238, 1, 0, 0, 0, 0, 146, 4, 156, 190, 143, 201, 220, 62, 134, 173, 171, 62, 170, 252, 2, 116, 150, 54, 10, 58, 1, 8, 0, 0, 16, 254, 238, 1, 0, 0, 0, 0, 146, 4, 156, 190, 143, 201, 220, 62, 134, 173, 171, 62, 219, 0, 0, 127, 150, 54, 0, 58, 1, 8, 0, 0, 16, 254, 238, 1, 0, 0, 0, 0, 146, 4, 156, 190, 143, 201, 220, 62, 134, 173, 171, 62, 221, 252, 0, 124, 150, 54, 10, 58, 1, 8, 0, 0, 16, 254, 238, 1, 0, 0, 0, 0, 76, 2, 163, 190, 123, 55, 103, 63, 69, 234, 154, 62, 130, 0, 0, 127, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 76, 2, 163, 190, 123, 55, 103, 63, 69, 234, 154, 62, 167, 0, 0, 127, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 191, 56, 139, 190, 123, 55, 103, 63, 97, 150, 178, 62, 219, 0, 0, 127, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 191, 56, 139, 190, 123, 55, 103, 63, 97, 150, 178, 62, 221, 4, 251, 126, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 191, 56, 139, 190, 123, 55, 103, 63, 97, 150, 178, 62, 0, 23, 233, 126, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 191, 56, 139, 190, 123, 55, 103, 63, 97, 150, 178, 62, 0, 0, 0, 127, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 125, 205, 154, 190, 5, 1, 121, 63, 27, 117, 170, 62, 221, 4, 251, 126, 255, 56, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 125, 205, 154, 190, 5, 1, 121, 63, 27, 117, 170, 62, 0, 23, 229, 124, 255, 56, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 146, 4, 156, 190, 123, 55, 103, 63, 134, 173, 171, 62, 167, 0, 0, 127, 180, 56, 0, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 146, 4, 156, 190, 123, 55, 103, 63, 134, 173, 171, 62, 219, 0, 0, 127, 180, 56, 0, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 146, 4, 156, 190, 123, 55, 103, 63, 134, 173, 171, 62, 221, 4, 251, 126, 180, 56, 10, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 37, 184, 167, 62, 143, 201, 220, 62, 4, 105, 177, 190, 129, 126, 0, 127, 150, 54, 68, 52, 1, 8, 0, 0, 229, 255, 25, 0, 0, 0, 0, 0, 37, 184, 167, 62, 143, 201, 220, 62, 4, 105, 177, 190, 153, 130, 233, 126, 150, 54, 68, 52, 1, 8, 0, 0, 229, 255, 25, 0, 0, 0, 0, 0, 37, 184, 167, 62, 143, 201, 220, 62, 4, 105, 177, 190, 122, 165, 13, 120, 86, 54, 0, 52, 1, 8, 0, 0, 229, 255, 25, 0, 0, 0, 0, 0, 37, 184, 167, 62, 143, 201, 220, 62, 4, 105, 177, 190, 127, 89, 0, 127, 150, 54, 68, 52, 1, 8, 0, 0, 229, 255, 25, 0, 0, 0, 0, 0, 178, 129, 191, 62, 143, 201, 220, 62, 209, 188, 153, 190, 122, 216, 5, 124, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 143, 201, 220, 62, 209, 188, 153, 190, 127, 37, 0, 127, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 143, 201, 220, 62, 209, 188, 153, 190, 103, 233, 23, 115, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 143, 201, 220, 62, 209, 188, 153, 190, 127, 0, 0, 127, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 227, 76, 183, 62, 112, 54, 185, 62, 167, 71, 169, 190, 153, 130, 230, 125, 0, 54, 23, 52, 1, 8, 0, 0, 250, 255, 4, 0, 0, 0, 0, 0, 227, 76, 183, 62, 112, 54, 185, 62, 167, 71, 169, 190, 122, 165, 13, 120, 0, 54, 208, 51, 1, 8, 0, 0, 250, 255, 4, 0, 0, 0, 0, 0, 227, 76, 183, 62, 112, 54, 185, 62, 167, 71, 169, 190, 122, 216, 5, 124, 0, 54, 208, 51, 1, 8, 0, 0, 250, 255, 4, 0, 0, 0, 0, 0, 227, 76, 183, 62, 112, 54, 185, 62, 167, 71, 169, 190, 103, 233, 23, 114, 0, 54, 208, 51, 1, 8, 0, 0, 250, 255, 4, 0, 0, 0, 0, 0, 248, 131, 184, 62, 143, 201, 220, 62, 18, 128, 170, 190, 122, 165, 13, 120, 150, 54, 215, 51, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 143, 201, 220, 62, 18, 128, 170, 190, 127, 89, 0, 127, 150, 54, 0, 52, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 143, 201, 220, 62, 18, 128, 170, 190, 122, 216, 5, 124, 150, 54, 215, 51, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 143, 201, 220, 62, 18, 128, 170, 190, 127, 37, 0, 127, 150, 54, 0, 52, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 123, 55, 103, 63, 209, 188, 153, 190, 122, 40, 251, 124, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 123, 55, 103, 63, 209, 188, 153, 190, 127, 37, 0, 127, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 123, 55, 103, 63, 209, 188, 153, 190, 103, 23, 233, 115, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 178, 129, 191, 62, 123, 55, 103, 63, 209, 188, 153, 190, 127, 0, 0, 127, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 37, 184, 167, 62, 123, 55, 103, 63, 4, 105, 177, 190, 129, 126, 0, 127, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 37, 184, 167, 62, 123, 55, 103, 63, 4, 105, 177, 190, 153, 126, 0, 115, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 37, 184, 167, 62, 123, 55, 103, 63, 4, 105, 177, 190, 122, 91, 235, 117, 208, 56, 238, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 37, 184, 167, 62, 123, 55, 103, 63, 4, 105, 177, 190, 127, 89, 0, 127, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 227, 76, 183, 62, 5, 1, 121, 63, 167, 71, 169, 190, 153, 126, 4, 113, 255, 56, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 227, 76, 183, 62, 5, 1, 121, 63, 167, 71, 169, 190, 122, 91, 235, 117, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 227, 76, 183, 62, 5, 1, 121, 63, 167, 71, 169, 190, 122, 40, 251, 124, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 227, 76, 183, 62, 5, 1, 121, 63, 167, 71, 169, 190, 103, 23, 232, 115, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 123, 55, 103, 63, 18, 128, 170, 190, 122, 91, 235, 117, 180, 56, 215, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 123, 55, 103, 63, 18, 128, 170, 190, 127, 89, 0, 127, 180, 56, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 123, 55, 103, 63, 18, 128, 170, 190, 122, 40, 251, 124, 180, 56, 215, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 248, 131, 184, 62, 123, 55, 103, 63, 18, 128, 170, 190, 127, 37, 0, 127, 180, 56, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 32, 192, 163, 190, 143, 201, 220, 62, 183, 225, 152, 190, 130, 0, 0, 127, 150, 54, 34, 56, 1, 8, 0, 0, 119, 255, 135, 0, 0, 0, 0, 0, 32, 192, 163, 190, 143, 201, 220, 62, 183, 225, 152, 190, 153, 233, 233, 115, 150, 54, 34, 56, 1, 8, 0, 0, 119, 255, 135, 0, 0, 0, 0, 0, 32, 192, 163, 190, 143, 201, 220, 62, 183, 225, 152, 190, 129, 37, 0, 127, 150, 54, 34, 56, 1, 8, 0, 0, 119, 255, 135, 0, 0, 0, 0, 0, 32, 192, 163, 190, 143, 201, 220, 62, 183, 225, 152, 190, 134, 216, 251, 124, 150, 54, 34, 56, 1, 8, 0, 0, 119, 255, 135, 0, 0, 0, 0, 0, 217, 19, 140, 190, 143, 201, 220, 62, 47, 171, 176, 190, 129, 89, 0, 127, 150, 54, 187, 55, 1, 8, 0, 0, 11, 254, 243, 1, 0, 0, 0, 0, 217, 19, 140, 190, 143, 201, 220, 62, 47, 171, 176, 190, 134, 166, 237, 116, 94, 54, 4, 56, 1, 8, 0, 0, 11, 254, 243, 1, 0, 0, 0, 0, 217, 19, 140, 190, 143, 201, 220, 62, 47, 171, 176, 190, 129, 126, 0, 127, 150, 54, 187, 55, 1, 8, 0, 0, 11, 254, 243, 1, 0, 0, 0, 0, 217, 19, 140, 190, 143, 201, 220, 62, 47, 171, 176, 190, 153, 130, 233, 126, 150, 54, 187, 55, 1, 8, 0, 0, 11, 254, 243, 1, 0, 0, 0, 0, 132, 158, 155, 190, 112, 54, 185, 62, 160, 118, 168, 190, 153, 233, 233, 114, 0, 54, 11, 56, 1, 8, 0, 0, 141, 254, 113, 1, 0, 0, 0, 0, 132, 158, 155, 190, 112, 54, 185, 62, 160, 118, 168, 190, 134, 216, 251, 124, 0, 54, 11, 56, 1, 8, 0, 0, 141, 254, 113, 1, 0, 0, 0, 0, 132, 158, 155, 190, 112, 54, 185, 62, 160, 118, 168, 190, 134, 166, 237, 116, 0, 54, 11, 56, 1, 8, 0, 0, 141, 254, 113, 1, 0, 0, 0, 0, 132, 158, 155, 190, 112, 54, 185, 62, 160, 118, 168, 190, 153, 130, 27, 124, 0, 54, 232, 55, 1, 8, 0, 0, 141, 254, 113, 1, 0, 0, 0, 0, 26, 215, 156, 190, 143, 201, 220, 62, 139, 173, 169, 190, 129, 37, 0, 127, 150, 54, 0, 56, 1, 8, 0, 0, 203, 254, 51, 1, 0, 0, 0, 0, 26, 215, 156, 190, 143, 201, 220, 62, 139, 173, 169, 190, 134, 216, 251, 124, 150, 54, 10, 56, 1, 8, 0, 0, 203, 254, 51, 1, 0, 0, 0, 0, 26, 215, 156, 190, 143, 201, 220, 62, 139, 173, 169, 190, 129, 89, 0, 127, 150, 54, 0, 56, 1, 8, 0, 0, 203, 254, 51, 1, 0, 0, 0, 0, 26, 215, 156, 190, 143, 201, 220, 62, 139, 173, 169, 190, 134, 166, 237, 116, 150, 54, 10, 56, 1, 8, 0, 0, 203, 254, 51, 1, 0, 0, 0, 0, 217, 19, 140, 190, 123, 55, 103, 63, 47, 171, 176, 190, 129, 89, 0, 127, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 217, 19, 140, 190, 123, 55, 103, 63, 47, 171, 176, 190, 134, 90, 13, 120, 212, 56, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 217, 19, 140, 190, 123, 55, 103, 63, 47, 171, 176, 190, 129, 126, 0, 127, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 217, 19, 140, 190, 123, 55, 103, 63, 47, 171, 176, 190, 153, 126, 0, 115, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 32, 192, 163, 190, 123, 55, 103, 63, 183, 225, 152, 190, 130, 0, 0, 127, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 32, 192, 163, 190, 123, 55, 103, 63, 183, 225, 152, 190, 129, 37, 0, 127, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 132, 158, 155, 190, 5, 1, 121, 63, 160, 118, 168, 190, 134, 90, 13, 120, 255, 56, 11, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 132, 158, 155, 190, 5, 1, 121, 63, 160, 118, 168, 190, 153, 126, 253, 113, 255, 56, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 215, 156, 190, 123, 55, 103, 63, 139, 173, 169, 190, 129, 37, 0, 127, 180, 56, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 215, 156, 190, 123, 55, 103, 63, 139, 173, 169, 190, 129, 89, 0, 127, 180, 56, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 215, 156, 190, 123, 55, 103, 63, 139, 173, 169, 190, 134, 90, 13, 120, 180, 56, 10, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0 ),
+"array_index_data": PoolByteArray( 3, 1, 51, 1, 15, 1, 3, 1, 33, 1, 51, 1, 112, 1, 237, 0, 252, 0, 237, 0, 78, 1, 81, 1, 78, 1, 112, 1, 108, 1, 237, 0, 112, 1, 78, 1, 250, 0, 207, 0, 222, 0, 250, 0, 235, 0, 207, 0, 84, 1, 213, 0, 240, 0, 213, 0, 20, 1, 25, 1, 20, 1, 84, 1, 75, 1, 213, 0, 84, 1, 20, 1, 2, 0, 39, 0, 6, 0, 2, 0, 35, 0, 39, 0, 8, 0, 25, 0, 12, 0, 8, 0, 22, 0, 25, 0, 23, 0, 19, 0, 26, 0, 23, 0, 16, 0, 19, 0, 18, 0, 7, 0, 21, 0, 18, 0, 3, 0, 7, 0, 10, 0, 17, 0, 24, 0, 10, 0, 0, 0, 17, 0, 27, 0, 4, 0, 14, 0, 27, 0, 20, 0, 4, 0, 37, 0, 58, 0, 42, 0, 37, 0, 53, 0, 58, 0, 5, 0, 43, 0, 15, 0, 5, 0, 38, 0, 43, 0, 11, 0, 34, 0, 1, 0, 11, 0, 31, 0, 34, 0, 13, 0, 28, 0, 9, 0, 13, 0, 40, 0, 28, 0, 47, 0, 64, 0, 50, 0, 47, 0, 62, 0, 64, 0, 30, 0, 49, 0, 33, 0, 30, 0, 46, 0, 49, 0, 41, 0, 45, 0, 29, 0, 41, 0, 57, 0, 45, 0, 32, 0, 52, 0, 36, 0, 32, 0, 48, 0, 52, 0, 73, 0, 76, 0, 61, 0, 73, 0, 85, 0, 76, 0, 56, 0, 60, 0, 44, 0, 56, 0, 72, 0, 60, 0, 51, 0, 71, 0, 55, 0, 51, 0, 67, 0, 71, 0, 54, 0, 74, 0, 59, 0, 54, 0, 68, 0, 74, 0, 80, 0, 87, 0, 83, 0, 80, 0, 78, 0, 87, 0, 66, 0, 84, 0, 70, 0, 66, 0, 81, 0, 84, 0, 69, 0, 86, 0, 75, 0, 69, 0, 82, 0, 86, 0, 63, 0, 79, 0, 65, 0, 63, 0, 77, 0, 79, 0, 88, 0, 116, 0, 90, 0, 88, 0, 112, 0, 116, 0, 93, 0, 107, 0, 95, 0, 93, 0, 104, 0, 107, 0, 103, 0, 101, 0, 106, 0, 103, 0, 98, 0, 101, 0, 96, 0, 90, 0, 99, 0, 96, 0, 88, 0, 90, 0, 92, 0, 97, 0, 102, 0, 92, 0, 89, 0, 97, 0, 105, 0, 91, 0, 94, 0, 105, 0, 100, 0, 91, 0, 118, 0, 138, 0, 122, 0, 118, 0, 134, 0, 138, 0, 91, 0, 120, 0, 94, 0, 91, 0, 117, 0, 120, 0, 92, 0, 113, 0, 89, 0, 92, 0, 108, 0, 113, 0, 95, 0, 111, 0, 93, 0, 95, 0, 123, 0, 111, 0, 124, 0, 147, 0, 129, 0, 124, 0, 141, 0, 147, 0, 110, 0, 130, 0, 114, 0, 110, 0, 126, 0, 130, 0, 121, 0, 125, 0, 109, 0, 121, 0, 137, 0, 125, 0, 115, 0, 135, 0, 119, 0, 115, 0, 131, 0, 135, 0, 154, 0, 158, 0, 142, 0, 154, 0, 167, 0, 158, 0, 139, 0, 143, 0, 127, 0, 139, 0, 155, 0, 143, 0, 128, 0, 148, 0, 132, 0, 128, 0, 144, 0, 148, 0, 133, 0, 153, 0, 136, 0, 133, 0, 151, 0, 153, 0, 160, 0, 165, 0, 163, 0, 160, 0, 156, 0, 165, 0, 145, 0, 162, 0, 149, 0, 145, 0, 159, 0, 162, 0, 150, 0, 166, 0, 152, 0, 150, 0, 164, 0, 166, 0, 140, 0, 161, 0, 146, 0, 140, 0, 157, 0, 161, 0, 171, 0, 176, 0, 168, 0, 171, 0, 179, 0, 176, 0, 169, 0, 183, 0, 175, 0, 169, 0, 177, 0, 183, 0, 172, 0, 178, 0, 170, 0, 172, 0, 180, 0, 178, 0, 174, 0, 181, 0, 173, 0, 174, 0, 182, 0, 181, 0, 187, 0, 192, 0, 184, 0, 187, 0, 195, 0, 192, 0, 185, 0, 199, 0, 191, 0, 185, 0, 193, 0, 199, 0, 188, 0, 194, 0, 186, 0, 188, 0, 196, 0, 194, 0, 190, 0, 197, 0, 189, 0, 190, 0, 198, 0, 197, 0, 216, 0, 203, 0, 201, 0, 216, 0, 219, 0, 203, 0, 64, 1, 21, 1, 76, 1, 64, 1, 1, 1, 21, 1, 208, 0, 225, 0, 223, 0, 208, 0, 210, 0, 225, 0, 97, 1, 217, 0, 244, 0, 217, 0, 35, 1, 38, 1, 35, 1, 97, 1, 90, 1, 217, 0, 97, 1, 35, 1, 241, 0, 218, 0, 214, 0, 241, 0, 245, 0, 218, 0, 34, 1, 109, 1, 46, 1, 34, 1, 89, 1, 109, 1, 221, 0, 251, 0, 248, 0, 221, 0, 224, 0, 251, 0, 65, 1, 246, 0, 230, 0, 246, 0, 96, 1, 100, 1, 96, 1, 65, 1, 58, 1, 246, 0, 65, 1, 96, 1, 227, 0, 247, 0, 242, 0, 227, 0, 231, 0, 247, 0, 95, 1, 77, 1, 107, 1, 95, 1, 57, 1, 77, 1, 249, 0, 238, 0, 234, 0, 249, 0, 253, 0, 238, 0, 202, 0, 232, 0, 229, 0, 202, 0, 205, 0, 232, 0, 41, 1, 204, 0, 220, 0, 204, 0, 2, 1, 6, 1, 2, 1, 41, 1, 32, 1, 204, 0, 41, 1, 2, 1, 236, 0, 212, 0, 209, 0, 236, 0, 239, 0, 212, 0, 22, 1, 226, 0, 211, 0, 226, 0, 50, 1, 53, 1, 50, 1, 22, 1, 14, 1, 226, 0, 22, 1, 50, 1, 215, 0, 228, 0, 243, 0, 215, 0, 200, 0, 228, 0, 254, 0, 8, 1, 12, 1, 10, 1, 7, 1, 4, 1, 16, 1, 23, 1, 26, 1, 28, 1, 24, 1, 18, 1, 31, 1, 40, 1, 45, 1, 43, 1, 39, 1, 37, 1, 56, 1, 52, 1, 49, 1, 59, 1, 66, 1, 69, 1, 71, 1, 67, 1, 61, 1, 73, 1, 83, 1, 87, 1, 85, 1, 82, 1, 79, 1, 92, 1, 98, 1, 102, 1, 104, 1, 99, 1, 94, 1, 106, 1, 111, 1, 115, 1, 255, 0, 29, 1, 19, 1, 255, 0, 13, 1, 29, 1, 11, 1, 17, 1, 27, 1, 11, 1, 5, 1, 17, 1, 47, 1, 42, 1, 36, 1, 47, 1, 54, 1, 42, 1, 55, 1, 30, 1, 44, 1, 55, 1, 48, 1, 30, 1, 60, 1, 86, 1, 80, 1, 60, 1, 70, 1, 86, 1, 72, 1, 74, 1, 88, 1, 72, 1, 62, 1, 74, 1, 105, 1, 103, 1, 93, 1, 105, 1, 114, 1, 103, 1, 113, 1, 91, 1, 101, 1, 113, 1, 110, 1, 91, 1, 9, 1, 233, 0, 206, 0, 233, 0, 63, 1, 68, 1, 63, 1, 9, 1, 0, 1, 233, 0, 9, 1, 63, 1 ),
+"blend_shape_data": [  ],
+"format": 2194903,
+"index_count": 570,
+"material": ExtResource( 7 ),
+"primitive": 4,
+"skeleton_aabb": [ AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.319825, 0.214695, -0.346504, 0.69531, 0.786802, 0.695308 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.0932127, 0.0172942, -1.06222, 0.237379, 0.228733, 0.873267 ), AABB( -0.0932127, 0.0172942, -1.06222, 0.237379, 0.228733, 0.873267 ), AABB( -0.0885222, 0.0172942, 0.184799, 0.237379, 0.228733, 0.85986 ), AABB( -0.0885222, 0.0172942, 0.184799, 0.237379, 0.228733, 0.85986 ), AABB( -0.0885222, 0.0172942, 0.185215, 0.237379, 0.228733, 0.859444 ), AABB( -0.319825, -1.5032, -1.06222, 0.69531, 1.93442, 2.10687 ), AABB( -0.0395408, -1.5032, 0.154119, 0.135815, 0.348963, 0.135804 ), AABB( -0.0406106, -1.5032, -0.289937, 0.135815, 0.348963, 0.135804 ), AABB( -0.0406106, -1.5032, -0.289937, 0.135815, 0.348963, 0.135804 ) ],
+"vertex_count": 372
+}
+surfaces/1 = {
+"aabb": AABB( -0.319825, 0.201766, -0.35032, 0.698744, 0.803045, 0.702941 ),
+"array_data": PoolByteArray( 212, 15, 165, 62, 80, 157, 128, 63, 2, 38, 151, 190, 202, 126, 0, 90, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 212, 15, 165, 62, 80, 157, 128, 63, 2, 38, 151, 190, 0, 127, 0, 63, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 212, 15, 165, 62, 80, 157, 128, 63, 2, 38, 151, 190, 54, 72, 0, 63, 40, 57, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 245, 184, 62, 202, 155, 78, 62, 252, 35, 171, 190, 142, 130, 244, 126, 0, 54, 23, 52, 1, 8, 0, 0, 200, 254, 54, 1, 0, 0, 0, 0, 94, 245, 184, 62, 202, 155, 78, 62, 252, 35, 171, 190, 118, 248, 8, 122, 0, 54, 208, 51, 1, 8, 0, 0, 200, 254, 54, 1, 0, 0, 0, 0, 170, 217, 156, 190, 229, 198, 121, 63, 172, 81, 172, 62, 202, 72, 0, 63, 244, 58, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 170, 217, 156, 190, 229, 198, 121, 63, 172, 81, 172, 62, 0, 72, 0, 36, 0, 59, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 170, 217, 156, 190, 229, 198, 121, 63, 172, 81, 172, 62, 0, 23, 23, 126, 0, 57, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 117, 244, 136, 190, 80, 157, 128, 63, 158, 83, 152, 62, 202, 72, 0, 63, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 117, 244, 136, 190, 80, 157, 128, 63, 158, 83, 152, 62, 0, 127, 0, 63, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 117, 244, 136, 190, 80, 157, 128, 63, 158, 83, 152, 62, 0, 72, 0, 36, 215, 58, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 210, 204, 154, 190, 40, 3, 121, 63, 24, 116, 170, 62, 153, 23, 24, 115, 0, 57, 244, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 170, 217, 156, 190, 121, 74, 183, 62, 172, 81, 172, 62, 0, 244, 0, 120, 0, 54, 11, 58, 1, 8, 0, 0, 109, 253, 145, 2, 0, 0, 0, 0, 175, 200, 185, 62, 229, 198, 121, 63, 91, 126, 171, 62, 0, 72, 0, 36, 0, 59, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 175, 200, 185, 62, 229, 198, 121, 63, 91, 126, 171, 62, 0, 23, 232, 126, 0, 57, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 175, 200, 185, 62, 229, 198, 121, 63, 91, 126, 171, 62, 54, 72, 0, 63, 244, 58, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 175, 200, 185, 62, 229, 198, 121, 63, 91, 126, 171, 62, 103, 23, 233, 115, 0, 57, 227, 29, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 202, 165, 62, 80, 157, 128, 63, 231, 152, 151, 62, 0, 127, 0, 63, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 202, 165, 62, 80, 157, 128, 63, 231, 152, 151, 62, 0, 72, 0, 36, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 202, 165, 62, 80, 157, 128, 63, 231, 152, 151, 62, 54, 72, 0, 63, 215, 58, 80, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 175, 200, 185, 62, 202, 155, 78, 62, 91, 126, 171, 62, 0, 244, 0, 120, 0, 54, 244, 59, 8, 1, 0, 0, 252, 132, 2, 123, 0, 0, 0, 0, 175, 200, 185, 62, 202, 155, 78, 62, 91, 126, 171, 62, 118, 248, 8, 122, 0, 54, 227, 29, 8, 1, 0, 0, 252, 132, 2, 123, 0, 0, 0, 0, 215, 157, 155, 190, 40, 3, 121, 63, 180, 117, 168, 190, 153, 23, 23, 115, 0, 57, 11, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 76, 2, 163, 190, 123, 55, 103, 63, 69, 234, 154, 62, 153, 23, 23, 115, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 76, 2, 163, 190, 123, 55, 103, 63, 69, 234, 154, 62, 170, 4, 243, 126, 212, 56, 0, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 125, 205, 154, 190, 5, 1, 121, 63, 27, 117, 170, 62, 153, 23, 24, 115, 255, 56, 244, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 125, 205, 154, 190, 5, 1, 121, 63, 27, 117, 170, 62, 170, 4, 243, 126, 255, 56, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 146, 4, 156, 190, 123, 55, 103, 63, 134, 173, 171, 62, 170, 4, 243, 126, 180, 56, 10, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 32, 192, 163, 190, 123, 55, 103, 63, 183, 225, 152, 190, 153, 23, 23, 115, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 32, 192, 163, 190, 123, 55, 103, 63, 183, 225, 152, 190, 134, 40, 5, 124, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 132, 158, 155, 190, 5, 1, 121, 63, 160, 118, 168, 190, 153, 23, 24, 115, 255, 56, 11, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 132, 158, 155, 190, 5, 1, 121, 63, 160, 118, 168, 190, 134, 40, 5, 124, 255, 56, 11, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 215, 156, 190, 123, 55, 103, 63, 139, 173, 169, 190, 134, 40, 5, 124, 180, 56, 10, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 245, 184, 62, 229, 198, 121, 63, 252, 35, 171, 190, 153, 126, 0, 115, 0, 57, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 245, 184, 62, 229, 198, 121, 63, 252, 35, 171, 190, 202, 126, 0, 90, 0, 57, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 245, 184, 62, 229, 198, 121, 63, 252, 35, 171, 190, 54, 72, 0, 63, 11, 57, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 245, 184, 62, 229, 198, 121, 63, 252, 35, 171, 190, 103, 23, 233, 114, 0, 57, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 251, 172, 157, 190, 121, 74, 183, 62, 171, 80, 170, 190, 142, 130, 244, 126, 0, 54, 232, 55, 1, 8, 0, 0, 179, 253, 75, 2, 0, 0, 0, 0, 44, 175, 137, 190, 80, 157, 128, 63, 75, 107, 150, 190, 202, 72, 0, 63, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 44, 175, 137, 190, 80, 157, 128, 63, 75, 107, 150, 190, 202, 126, 0, 90, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 44, 175, 137, 190, 80, 157, 128, 63, 75, 107, 150, 190, 0, 127, 0, 63, 40, 57, 175, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 251, 172, 157, 190, 229, 198, 121, 63, 171, 80, 170, 190, 202, 72, 0, 63, 11, 57, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 251, 172, 157, 190, 229, 198, 121, 63, 171, 80, 170, 190, 153, 126, 0, 114, 0, 57, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 251, 172, 157, 190, 229, 198, 121, 63, 171, 80, 170, 190, 202, 126, 0, 90, 0, 57, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 221, 69, 219, 62, 152, 190, 155, 62, 87, 252, 0, 120, 86, 54, 0, 60, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 221, 69, 219, 62, 152, 190, 155, 62, 89, 0, 0, 127, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 221, 69, 219, 62, 152, 190, 155, 62, 118, 248, 8, 122, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 221, 69, 219, 62, 152, 190, 155, 62, 127, 0, 0, 127, 150, 54, 70, 36, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 28, 19, 170, 62, 221, 69, 219, 62, 217, 202, 179, 62, 0, 244, 0, 120, 150, 54, 221, 59, 1, 8, 0, 0, 237, 255, 17, 0, 0, 0, 0, 0, 28, 19, 170, 62, 221, 69, 219, 62, 217, 202, 179, 62, 0, 0, 0, 127, 150, 54, 221, 59, 1, 8, 0, 0, 237, 255, 17, 0, 0, 0, 0, 0, 28, 19, 170, 62, 221, 69, 219, 62, 217, 202, 179, 62, 36, 252, 0, 124, 150, 54, 221, 59, 1, 8, 0, 0, 237, 255, 17, 0, 0, 0, 0, 0, 28, 19, 170, 62, 221, 69, 219, 62, 217, 202, 179, 62, 37, 0, 0, 127, 150, 54, 221, 59, 1, 8, 0, 0, 237, 255, 17, 0, 0, 0, 0, 0, 177, 201, 185, 62, 201, 78, 183, 62, 92, 127, 171, 62, 0, 244, 0, 120, 0, 54, 244, 59, 1, 8, 0, 0, 197, 255, 57, 0, 0, 0, 0, 0, 177, 201, 185, 62, 201, 78, 183, 62, 92, 127, 171, 62, 36, 252, 0, 124, 0, 54, 244, 59, 1, 8, 0, 0, 197, 255, 57, 0, 0, 0, 0, 0, 177, 201, 185, 62, 201, 78, 183, 62, 92, 127, 171, 62, 87, 252, 0, 120, 0, 54, 244, 59, 1, 8, 0, 0, 197, 255, 57, 0, 0, 0, 0, 0, 177, 201, 185, 62, 201, 78, 183, 62, 92, 127, 171, 62, 118, 248, 8, 122, 0, 54, 226, 29, 1, 8, 0, 0, 197, 255, 57, 0, 0, 0, 0, 0, 79, 5, 187, 62, 221, 69, 219, 62, 160, 185, 172, 62, 36, 252, 0, 124, 150, 54, 245, 59, 1, 8, 0, 0, 253, 255, 1, 0, 0, 0, 0, 0, 79, 5, 187, 62, 221, 69, 219, 62, 160, 185, 172, 62, 37, 0, 0, 127, 150, 54, 0, 60, 1, 8, 0, 0, 253, 255, 1, 0, 0, 0, 0, 0, 79, 5, 187, 62, 221, 69, 219, 62, 160, 185, 172, 62, 87, 252, 0, 120, 150, 54, 245, 59, 1, 8, 0, 0, 253, 255, 1, 0, 0, 0, 0, 0, 79, 5, 187, 62, 221, 69, 219, 62, 160, 185, 172, 62, 89, 0, 0, 127, 150, 54, 0, 0, 1, 8, 0, 0, 253, 255, 1, 0, 0, 0, 0, 0, 28, 19, 170, 62, 51, 201, 103, 63, 217, 202, 179, 62, 0, 23, 233, 126, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 28, 19, 170, 62, 51, 201, 103, 63, 217, 202, 179, 62, 0, 0, 0, 127, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 28, 19, 170, 62, 51, 201, 103, 63, 217, 202, 179, 62, 36, 4, 251, 126, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 28, 19, 170, 62, 51, 201, 103, 63, 217, 202, 179, 62, 37, 0, 0, 127, 180, 56, 221, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 51, 201, 103, 63, 152, 190, 155, 62, 87, 4, 21, 125, 208, 56, 251, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 51, 201, 103, 63, 152, 190, 155, 62, 89, 0, 0, 127, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 51, 201, 103, 63, 152, 190, 155, 62, 103, 23, 233, 115, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 1, 194, 62, 51, 201, 103, 63, 152, 190, 155, 62, 127, 0, 0, 127, 180, 56, 70, 36, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 201, 185, 62, 189, 196, 121, 63, 92, 127, 171, 62, 0, 23, 233, 126, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 201, 185, 62, 189, 196, 121, 63, 92, 127, 171, 62, 36, 4, 251, 126, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 201, 185, 62, 189, 196, 121, 63, 92, 127, 171, 62, 87, 4, 21, 125, 255, 56, 244, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 177, 201, 185, 62, 189, 196, 121, 63, 92, 127, 171, 62, 103, 23, 233, 115, 255, 56, 226, 29, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 79, 5, 187, 62, 51, 201, 103, 63, 160, 185, 172, 62, 36, 4, 251, 126, 180, 56, 245, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 79, 5, 187, 62, 51, 201, 103, 63, 160, 185, 172, 62, 37, 0, 0, 127, 180, 56, 0, 60, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 79, 5, 187, 62, 51, 201, 103, 63, 160, 185, 172, 62, 87, 4, 21, 125, 180, 56, 245, 59, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 79, 5, 187, 62, 51, 201, 103, 63, 160, 185, 172, 62, 89, 0, 0, 127, 180, 56, 0, 0, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 230, 25, 141, 190, 221, 69, 219, 62, 195, 138, 180, 62, 219, 0, 0, 127, 150, 54, 34, 58, 1, 8, 0, 0, 89, 253, 165, 2, 0, 0, 0, 0, 230, 25, 141, 190, 221, 69, 219, 62, 195, 138, 180, 62, 221, 252, 0, 124, 150, 54, 34, 58, 1, 8, 0, 0, 89, 253, 165, 2, 0, 0, 0, 0, 230, 25, 141, 190, 221, 69, 219, 62, 195, 138, 180, 62, 0, 244, 0, 120, 150, 54, 34, 58, 1, 8, 0, 0, 89, 253, 165, 2, 0, 0, 0, 0, 230, 25, 141, 190, 221, 69, 219, 62, 195, 138, 180, 62, 0, 0, 0, 127, 150, 54, 34, 58, 1, 8, 0, 0, 89, 253, 165, 2, 0, 0, 0, 0, 171, 218, 156, 190, 201, 78, 183, 62, 175, 82, 172, 62, 221, 252, 0, 124, 0, 54, 11, 58, 1, 8, 0, 0, 130, 253, 124, 2, 0, 0, 0, 0, 171, 218, 156, 190, 201, 78, 183, 62, 175, 82, 172, 62, 0, 244, 0, 120, 0, 54, 11, 58, 1, 8, 0, 0, 130, 253, 124, 2, 0, 0, 0, 0, 26, 21, 158, 190, 221, 69, 219, 62, 119, 142, 173, 62, 219, 0, 0, 127, 150, 54, 0, 58, 1, 8, 0, 0, 54, 254, 200, 1, 0, 0, 0, 0, 26, 21, 158, 190, 221, 69, 219, 62, 119, 142, 173, 62, 221, 252, 0, 124, 150, 54, 10, 58, 1, 8, 0, 0, 54, 254, 200, 1, 0, 0, 0, 0, 230, 25, 141, 190, 51, 201, 103, 63, 195, 138, 180, 62, 219, 0, 0, 127, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 230, 25, 141, 190, 51, 201, 103, 63, 195, 138, 180, 62, 221, 4, 251, 126, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 230, 25, 141, 190, 51, 201, 103, 63, 195, 138, 180, 62, 0, 23, 233, 126, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 230, 25, 141, 190, 51, 201, 103, 63, 195, 138, 180, 62, 0, 0, 0, 127, 180, 56, 34, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 171, 218, 156, 190, 189, 196, 121, 63, 175, 82, 172, 62, 221, 4, 251, 126, 255, 56, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 171, 218, 156, 190, 189, 196, 121, 63, 175, 82, 172, 62, 0, 23, 23, 126, 255, 56, 11, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 21, 158, 190, 51, 201, 103, 63, 119, 142, 173, 62, 219, 0, 0, 127, 180, 56, 0, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 26, 21, 158, 190, 51, 201, 103, 63, 119, 142, 173, 62, 221, 4, 251, 126, 180, 56, 10, 58, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 155, 53, 169, 62, 221, 69, 219, 62, 41, 93, 179, 190, 129, 126, 0, 127, 150, 54, 68, 52, 1, 8, 0, 0, 230, 255, 24, 0, 0, 0, 0, 0, 155, 53, 169, 62, 221, 69, 219, 62, 41, 93, 179, 190, 142, 130, 244, 126, 150, 54, 68, 52, 1, 8, 0, 0, 230, 255, 24, 0, 0, 0, 0, 0, 155, 53, 169, 62, 221, 69, 219, 62, 41, 93, 179, 190, 122, 165, 13, 120, 86, 54, 0, 52, 1, 8, 0, 0, 230, 255, 24, 0, 0, 0, 0, 0, 155, 53, 169, 62, 221, 69, 219, 62, 41, 93, 179, 190, 127, 89, 0, 127, 150, 54, 68, 52, 1, 8, 0, 0, 230, 255, 24, 0, 0, 0, 0, 0, 198, 65, 193, 62, 221, 69, 219, 62, 126, 110, 155, 190, 122, 216, 5, 124, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 221, 69, 219, 62, 126, 110, 155, 190, 127, 37, 0, 127, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 221, 69, 219, 62, 126, 110, 155, 190, 118, 248, 8, 122, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 221, 69, 219, 62, 126, 110, 155, 190, 127, 0, 0, 127, 150, 54, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 95, 246, 184, 62, 201, 78, 183, 62, 254, 36, 171, 190, 142, 130, 244, 126, 0, 54, 23, 52, 1, 8, 0, 0, 246, 255, 8, 0, 0, 0, 0, 0, 95, 246, 184, 62, 201, 78, 183, 62, 254, 36, 171, 190, 122, 165, 13, 120, 0, 54, 208, 51, 1, 8, 0, 0, 246, 255, 8, 0, 0, 0, 0, 0, 95, 246, 184, 62, 201, 78, 183, 62, 254, 36, 171, 190, 122, 216, 5, 124, 0, 54, 208, 51, 1, 8, 0, 0, 246, 255, 8, 0, 0, 0, 0, 0, 95, 246, 184, 62, 201, 78, 183, 62, 254, 36, 171, 190, 118, 248, 8, 122, 0, 54, 208, 51, 1, 8, 0, 0, 246, 255, 8, 0, 0, 0, 0, 0, 120, 48, 186, 62, 221, 69, 219, 62, 199, 96, 172, 190, 122, 165, 13, 120, 150, 54, 215, 51, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 221, 69, 219, 62, 199, 96, 172, 190, 127, 89, 0, 127, 150, 54, 0, 52, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 221, 69, 219, 62, 199, 96, 172, 190, 122, 216, 5, 124, 150, 54, 215, 51, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 221, 69, 219, 62, 199, 96, 172, 190, 127, 37, 0, 127, 150, 54, 0, 52, 1, 8, 0, 0, 254, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 51, 201, 103, 63, 126, 110, 155, 190, 122, 40, 251, 124, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 51, 201, 103, 63, 126, 110, 155, 190, 127, 37, 0, 127, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 51, 201, 103, 63, 126, 110, 155, 190, 103, 23, 233, 115, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 198, 65, 193, 62, 51, 201, 103, 63, 126, 110, 155, 190, 127, 0, 0, 127, 180, 56, 119, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 155, 53, 169, 62, 51, 201, 103, 63, 41, 93, 179, 190, 129, 126, 0, 127, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 155, 53, 169, 62, 51, 201, 103, 63, 41, 93, 179, 190, 153, 126, 0, 115, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 155, 53, 169, 62, 51, 201, 103, 63, 41, 93, 179, 190, 122, 91, 235, 117, 208, 56, 238, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 155, 53, 169, 62, 51, 201, 103, 63, 41, 93, 179, 190, 127, 89, 0, 127, 180, 56, 68, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 95, 246, 184, 62, 189, 196, 121, 63, 254, 36, 171, 190, 153, 126, 0, 115, 255, 56, 23, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 95, 246, 184, 62, 189, 196, 121, 63, 254, 36, 171, 190, 122, 91, 235, 117, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 95, 246, 184, 62, 189, 196, 121, 63, 254, 36, 171, 190, 122, 40, 251, 124, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 95, 246, 184, 62, 189, 196, 121, 63, 254, 36, 171, 190, 103, 23, 233, 115, 255, 56, 208, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 51, 201, 103, 63, 199, 96, 172, 190, 122, 91, 235, 117, 180, 56, 215, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 51, 201, 103, 63, 199, 96, 172, 190, 127, 89, 0, 127, 180, 56, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 51, 201, 103, 63, 199, 96, 172, 190, 122, 40, 251, 124, 180, 56, 215, 51, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 120, 48, 186, 62, 51, 201, 103, 63, 199, 96, 172, 190, 127, 37, 0, 127, 180, 56, 0, 52, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 103, 247, 141, 190, 221, 69, 219, 62, 63, 157, 178, 190, 129, 89, 0, 127, 150, 54, 187, 55, 1, 8, 0, 0, 141, 253, 113, 2, 0, 0, 0, 0, 103, 247, 141, 190, 221, 69, 219, 62, 63, 157, 178, 190, 134, 166, 237, 116, 94, 54, 4, 56, 1, 8, 0, 0, 141, 253, 113, 2, 0, 0, 0, 0, 103, 247, 141, 190, 221, 69, 219, 62, 63, 157, 178, 190, 129, 126, 0, 127, 150, 54, 187, 55, 1, 8, 0, 0, 141, 253, 113, 2, 0, 0, 0, 0, 103, 247, 141, 190, 221, 69, 219, 62, 63, 157, 178, 190, 142, 130, 244, 126, 150, 54, 187, 55, 1, 8, 0, 0, 141, 253, 113, 2, 0, 0, 0, 0, 253, 173, 157, 190, 201, 78, 183, 62, 172, 81, 170, 190, 134, 166, 237, 116, 0, 54, 11, 56, 1, 8, 0, 0, 38, 254, 216, 1, 0, 0, 0, 0, 253, 173, 157, 190, 201, 78, 183, 62, 172, 81, 170, 190, 142, 130, 244, 126, 0, 54, 232, 55, 1, 8, 0, 0, 38, 254, 216, 1, 0, 0, 0, 0, 241, 233, 158, 190, 221, 69, 219, 62, 240, 139, 171, 190, 129, 89, 0, 127, 150, 54, 0, 56, 1, 8, 0, 0, 147, 254, 107, 1, 0, 0, 0, 0, 241, 233, 158, 190, 221, 69, 219, 62, 240, 139, 171, 190, 134, 166, 237, 116, 150, 54, 10, 56, 1, 8, 0, 0, 147, 254, 107, 1, 0, 0, 0, 0, 103, 247, 141, 190, 51, 201, 103, 63, 63, 157, 178, 190, 129, 89, 0, 127, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 103, 247, 141, 190, 51, 201, 103, 63, 63, 157, 178, 190, 134, 90, 13, 120, 212, 56, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 103, 247, 141, 190, 51, 201, 103, 63, 63, 157, 178, 190, 129, 126, 0, 127, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 103, 247, 141, 190, 51, 201, 103, 63, 63, 157, 178, 190, 153, 126, 0, 115, 180, 56, 187, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 253, 173, 157, 190, 189, 196, 121, 63, 172, 81, 170, 190, 134, 90, 13, 120, 255, 56, 11, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 253, 173, 157, 190, 189, 196, 121, 63, 172, 81, 170, 190, 153, 126, 0, 115, 255, 56, 232, 55, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 241, 233, 158, 190, 51, 201, 103, 63, 240, 139, 171, 190, 129, 89, 0, 127, 180, 56, 0, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 241, 233, 158, 190, 51, 201, 103, 63, 240, 139, 171, 190, 134, 90, 13, 120, 180, 56, 10, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0 ),
+"array_index_data": PoolByteArray( 25, 0, 22, 0, 11, 0, 22, 0, 28, 0, 30, 0, 28, 0, 25, 0, 23, 0, 22, 0, 25, 0, 28, 0, 49, 0, 87, 0, 61, 0, 49, 0, 79, 0, 87, 0, 24, 0, 26, 0, 27, 0, 32, 0, 31, 0, 29, 0, 137, 0, 33, 0, 42, 0, 33, 0, 113, 0, 116, 0, 113, 0, 137, 0, 135, 0, 33, 0, 137, 0, 113, 0, 40, 0, 17, 0, 9, 0, 40, 0, 1, 0, 17, 0, 119, 0, 16, 0, 36, 0, 16, 0, 66, 0, 71, 0, 66, 0, 119, 0, 110, 0, 16, 0, 119, 0, 66, 0, 99, 0, 67, 0, 111, 0, 99, 0, 47, 0, 67, 0, 18, 0, 6, 0, 10, 0, 18, 0, 13, 0, 6, 0, 8, 0, 41, 0, 38, 0, 8, 0, 5, 0, 41, 0, 100, 0, 37, 0, 3, 0, 37, 0, 127, 0, 129, 0, 127, 0, 100, 0, 93, 0, 37, 0, 100, 0, 127, 0, 126, 0, 112, 0, 134, 0, 126, 0, 92, 0, 112, 0, 39, 0, 34, 0, 0, 0, 39, 0, 43, 0, 34, 0, 81, 0, 20, 0, 12, 0, 20, 0, 48, 0, 52, 0, 48, 0, 81, 0, 78, 0, 20, 0, 81, 0, 48, 0, 2, 0, 15, 0, 19, 0, 2, 0, 35, 0, 15, 0, 68, 0, 7, 0, 14, 0, 7, 0, 86, 0, 89, 0, 86, 0, 68, 0, 60, 0, 7, 0, 68, 0, 86, 0, 44, 0, 54, 0, 58, 0, 56, 0, 53, 0, 50, 0, 62, 0, 69, 0, 72, 0, 74, 0, 70, 0, 64, 0, 77, 0, 80, 0, 83, 0, 91, 0, 88, 0, 85, 0, 94, 0, 101, 0, 104, 0, 106, 0, 102, 0, 96, 0, 108, 0, 118, 0, 122, 0, 120, 0, 117, 0, 114, 0, 131, 0, 128, 0, 125, 0, 133, 0, 136, 0, 139, 0, 45, 0, 75, 0, 65, 0, 45, 0, 59, 0, 75, 0, 57, 0, 63, 0, 73, 0, 57, 0, 51, 0, 63, 0, 90, 0, 76, 0, 82, 0, 90, 0, 84, 0, 76, 0, 95, 0, 121, 0, 115, 0, 95, 0, 105, 0, 121, 0, 107, 0, 109, 0, 123, 0, 107, 0, 97, 0, 109, 0, 132, 0, 130, 0, 124, 0, 132, 0, 138, 0, 130, 0, 55, 0, 4, 0, 21, 0, 4, 0, 98, 0, 103, 0, 98, 0, 55, 0, 46, 0, 4, 0, 55, 0, 98, 0 ),
+"blend_shape_data": [  ],
+"format": 2194903,
+"index_count": 210,
+"material": ExtResource( 6 ),
+"primitive": 4,
+"skeleton_aabb": [ AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.319825, 0.201766, -0.35032, 0.698744, 0.803045, 0.702941 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.310379, 0.201766, -0.35032, 0.689298, 0.226501, 0.702941 ) ],
+"vertex_count": 140
+}
+surfaces/2 = {
+"aabb": AABB( -0.328958, 0.554517, -0.195557, 0.0239526, 0.225382, 0.384916 ),
+"array_data": PoolByteArray( 36, 163, 156, 190, 208, 244, 13, 63, 36, 64, 72, 190, 130, 0, 0, 129, 150, 54, 221, 57, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 36, 163, 156, 190, 208, 244, 13, 63, 36, 64, 72, 190, 0, 127, 127, 63, 150, 54, 221, 57, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 36, 163, 156, 190, 208, 244, 13, 63, 36, 64, 72, 190, 0, 0, 127, 193, 150, 54, 221, 57, 1, 8, 0, 0, 249, 255, 5, 0, 0, 0, 0, 0, 36, 163, 156, 190, 109, 167, 71, 63, 36, 64, 72, 190, 130, 0, 0, 129, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 36, 163, 156, 190, 109, 167, 71, 63, 36, 64, 72, 190, 0, 129, 127, 63, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 36, 163, 156, 190, 109, 167, 71, 63, 36, 64, 72, 190, 0, 0, 127, 193, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 208, 244, 13, 63, 105, 29, 202, 189, 130, 0, 0, 129, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 208, 244, 13, 63, 105, 29, 202, 189, 129, 126, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 208, 244, 13, 63, 105, 29, 202, 189, 0, 127, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 109, 167, 71, 63, 105, 29, 202, 189, 130, 0, 0, 129, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 109, 167, 71, 63, 105, 29, 202, 189, 129, 126, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 142, 132, 156, 190, 109, 167, 71, 63, 105, 29, 202, 189, 0, 129, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 109, 167, 71, 63, 153, 49, 72, 190, 0, 129, 127, 63, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 109, 167, 71, 63, 153, 49, 72, 190, 0, 0, 127, 193, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 109, 167, 71, 63, 153, 49, 72, 190, 127, 0, 0, 127, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 208, 244, 13, 63, 153, 49, 72, 190, 0, 127, 127, 63, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 208, 244, 13, 63, 153, 49, 72, 190, 0, 0, 127, 193, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 33, 109, 168, 190, 208, 244, 13, 63, 153, 49, 72, 190, 127, 0, 0, 127, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 208, 244, 13, 63, 84, 0, 202, 189, 129, 126, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 208, 244, 13, 63, 84, 0, 202, 189, 0, 127, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 208, 244, 13, 63, 84, 0, 202, 189, 127, 0, 0, 127, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 109, 167, 71, 63, 84, 0, 202, 189, 129, 126, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 109, 167, 71, 63, 84, 0, 202, 189, 0, 129, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 139, 78, 168, 190, 109, 167, 71, 63, 84, 0, 202, 189, 127, 0, 0, 127, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 109, 167, 71, 63, 94, 231, 65, 62, 129, 126, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 109, 167, 71, 63, 94, 231, 65, 62, 0, 129, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 109, 167, 71, 63, 94, 231, 65, 62, 127, 0, 0, 127, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 208, 244, 13, 63, 94, 231, 65, 62, 129, 126, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 208, 244, 13, 63, 94, 231, 65, 62, 0, 127, 127, 63, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 154, 243, 167, 190, 208, 244, 13, 63, 94, 231, 65, 62, 127, 0, 0, 127, 150, 54, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 208, 244, 13, 63, 224, 107, 189, 61, 0, 127, 127, 63, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 208, 244, 13, 63, 224, 107, 189, 61, 0, 0, 127, 193, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 208, 244, 13, 63, 224, 107, 189, 61, 127, 0, 0, 127, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 109, 167, 71, 63, 224, 107, 189, 61, 0, 129, 127, 63, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 109, 167, 71, 63, 224, 107, 189, 61, 0, 0, 127, 193, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 49, 18, 168, 190, 109, 167, 71, 63, 224, 107, 189, 61, 127, 0, 0, 127, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 157, 41, 156, 190, 109, 167, 71, 63, 211, 216, 65, 62, 130, 0, 0, 129, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 157, 41, 156, 190, 109, 167, 71, 63, 211, 216, 65, 62, 129, 126, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 157, 41, 156, 190, 109, 167, 71, 63, 211, 216, 65, 62, 0, 129, 127, 63, 180, 56, 34, 56, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 157, 41, 156, 190, 208, 244, 13, 63, 211, 216, 65, 62, 130, 0, 0, 129, 150, 54, 34, 56, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 157, 41, 156, 190, 208, 244, 13, 63, 211, 216, 65, 62, 129, 126, 127, 63, 150, 54, 34, 56, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 157, 41, 156, 190, 208, 244, 13, 63, 211, 216, 65, 62, 0, 127, 127, 63, 150, 54, 34, 56, 1, 8, 0, 0, 252, 255, 2, 0, 0, 0, 0, 0, 52, 72, 156, 190, 109, 167, 71, 63, 203, 78, 189, 61, 130, 0, 0, 129, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 52, 72, 156, 190, 109, 167, 71, 63, 203, 78, 189, 61, 0, 129, 127, 63, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 52, 72, 156, 190, 109, 167, 71, 63, 203, 78, 189, 61, 0, 0, 127, 193, 180, 56, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 52, 72, 156, 190, 208, 244, 13, 63, 203, 78, 189, 61, 130, 0, 0, 129, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 52, 72, 156, 190, 208, 244, 13, 63, 203, 78, 189, 61, 0, 127, 127, 63, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 52, 72, 156, 190, 208, 244, 13, 63, 203, 78, 189, 61, 0, 0, 127, 193, 150, 54, 221, 57, 1, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0 ),
+"array_index_data": PoolByteArray( 0, 0, 9, 0, 6, 0, 0, 0, 3, 0, 9, 0, 17, 0, 23, 0, 14, 0, 17, 0, 20, 0, 23, 0, 10, 0, 18, 0, 7, 0, 10, 0, 21, 0, 18, 0, 8, 0, 15, 0, 1, 0, 8, 0, 19, 0, 15, 0, 2, 0, 13, 0, 5, 0, 2, 0, 16, 0, 13, 0, 4, 0, 22, 0, 11, 0, 4, 0, 12, 0, 22, 0, 43, 0, 25, 0, 38, 0, 43, 0, 33, 0, 25, 0, 47, 0, 34, 0, 44, 0, 47, 0, 31, 0, 34, 0, 41, 0, 30, 0, 46, 0, 41, 0, 28, 0, 30, 0, 37, 0, 27, 0, 40, 0, 37, 0, 24, 0, 27, 0, 32, 0, 26, 0, 35, 0, 32, 0, 29, 0, 26, 0, 45, 0, 36, 0, 39, 0, 45, 0, 42, 0, 36, 0 ),
+"blend_shape_data": [  ],
+"format": 2194903,
+"index_count": 72,
+"material": ExtResource( 9 ),
+"primitive": 4,
+"skeleton_aabb": [ AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.328958, 0.554517, -0.195557, 0.0239526, 0.225382, 0.384916 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.305932, 0.554517, -0.195557, 0.00092718, 1.00136e-05, 0.384861 ) ],
+"vertex_count": 48
+}
+surfaces/3 = {
+"aabb": AABB( -0.39004, -1.17286, -0.265954, 0.221758, 1.50545, 0.536228 ),
+"array_data": PoolByteArray( 246, 9, 199, 190, 32, 32, 150, 191, 8, 96, 138, 62, 146, 16, 15, 117, 0, 54, 164, 57, 2, 5, 8, 0, 145, 126, 45, 98, 64, 31, 0, 0, 235, 81, 44, 190, 123, 74, 170, 62, 15, 157, 71, 61, 146, 16, 24, 119, 0, 57, 61, 57, 5, 2, 1, 8, 97, 153, 166, 101, 247, 0, 0, 0, 73, 179, 199, 190, 32, 32, 150, 191, 43, 43, 136, 190, 146, 16, 15, 117, 0, 54, 91, 56, 2, 5, 8, 0, 93, 177, 38, 57, 123, 21, 0, 0, 108, 141, 44, 190, 123, 74, 170, 62, 10, 82, 58, 189, 146, 16, 22, 119, 0, 57, 194, 56, 2, 5, 1, 8, 152, 197, 161, 57, 196, 0, 0, 0 ),
+"array_index_data": PoolByteArray( 0, 0, 3, 0, 1, 0, 0, 0, 2, 0, 3, 0 ),
+"blend_shape_data": [  ],
+"format": 2194903,
+"index_count": 6,
+"material": ExtResource( 8 ),
+"primitive": 4,
+"skeleton_aabb": [ AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.168508, 0.332599, -0.0454884, 0.000236988, 1.00136e-05, 0.0942322 ), AABB( -0.39004, -1.17286, -0.265954, 0.221758, 1.50545, 0.536228 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.39004, -1.17286, -0.265954, 0.221758, 1.50545, 0.536228 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.39004, -1.17286, -0.265954, 0.221758, 1.50545, 0.536228 ) ],
+"vertex_count": 4
+}
+surfaces/4 = {
+"aabb": AABB( -0.39004, -1.69914, -0.416718, 0.835739, 2.03174, 0.835736 ),
+"array_data": PoolByteArray( 90, 79, 4, 62, 84, 125, 217, 191, 143, 0, 247, 189, 0, 129, 129, 126, 0, 48, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 90, 79, 4, 62, 84, 125, 217, 191, 143, 0, 247, 189, 0, 0, 0, 127, 0, 54, 0, 60, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 90, 79, 4, 62, 84, 125, 217, 191, 143, 0, 247, 189, 127, 0, 0, 127, 0, 54, 0, 0, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 90, 79, 4, 62, 217, 104, 192, 191, 143, 0, 247, 189, 0, 127, 127, 63, 0, 57, 0, 0, 11, 10, 0, 0, 154, 255, 100, 0, 0, 0, 0, 0, 90, 79, 4, 62, 217, 104, 192, 191, 143, 0, 247, 189, 0, 127, 127, 63, 0, 57, 0, 60, 11, 10, 0, 0, 154, 255, 100, 0, 0, 0, 0, 0, 90, 79, 4, 62, 217, 104, 192, 191, 143, 0, 247, 189, 0, 0, 0, 127, 0, 57, 0, 60, 11, 10, 0, 0, 154, 255, 100, 0, 0, 0, 0, 0, 90, 79, 4, 62, 217, 104, 192, 191, 143, 0, 247, 189, 127, 0, 0, 127, 0, 57, 0, 0, 11, 10, 0, 0, 154, 255, 100, 0, 0, 0, 0, 0, 105, 213, 151, 189, 84, 125, 217, 191, 183, 255, 245, 189, 0, 129, 129, 126, 0, 48, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 105, 213, 151, 189, 84, 125, 217, 191, 183, 255, 245, 189, 0, 0, 0, 127, 0, 54, 0, 58, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 105, 213, 151, 189, 217, 104, 192, 191, 183, 255, 245, 189, 226, 96, 127, 193, 0, 57, 0, 58, 11, 10, 0, 0, 110, 245, 144, 10, 0, 0, 0, 0, 105, 213, 151, 189, 217, 104, 192, 191, 183, 255, 245, 189, 0, 127, 127, 63, 0, 57, 0, 58, 11, 10, 0, 0, 110, 245, 144, 10, 0, 0, 0, 0, 105, 213, 151, 189, 217, 104, 192, 191, 183, 255, 245, 189, 0, 0, 0, 127, 0, 57, 0, 58, 11, 10, 0, 0, 110, 245, 144, 10, 0, 0, 0, 0, 238, 206, 3, 62, 84, 125, 217, 191, 21, 221, 165, 190, 129, 126, 0, 127, 0, 54, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 206, 3, 62, 84, 125, 217, 191, 21, 221, 165, 190, 0, 129, 129, 126, 0, 54, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 206, 3, 62, 84, 125, 217, 191, 21, 221, 165, 190, 127, 0, 0, 127, 0, 54, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 206, 3, 62, 217, 104, 192, 191, 21, 221, 165, 190, 129, 126, 0, 127, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 206, 3, 62, 217, 104, 192, 191, 21, 221, 165, 190, 0, 127, 127, 63, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 238, 206, 3, 62, 217, 104, 192, 191, 21, 221, 165, 190, 127, 0, 0, 127, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 65, 214, 152, 189, 84, 125, 217, 191, 223, 156, 165, 190, 129, 126, 0, 127, 0, 54, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 65, 214, 152, 189, 84, 125, 217, 191, 223, 156, 165, 190, 0, 129, 129, 126, 0, 54, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 65, 214, 152, 189, 217, 104, 192, 191, 223, 156, 165, 190, 226, 96, 127, 193, 0, 57, 0, 56, 11, 10, 0, 0, 147, 240, 107, 15, 0, 0, 0, 0, 65, 214, 152, 189, 217, 104, 192, 191, 223, 156, 165, 190, 129, 126, 0, 127, 0, 57, 0, 56, 11, 10, 0, 0, 147, 240, 107, 15, 0, 0, 0, 0, 65, 214, 152, 189, 217, 104, 192, 191, 223, 156, 165, 190, 0, 127, 127, 63, 0, 57, 0, 56, 11, 10, 0, 0, 147, 240, 107, 15, 0, 0, 0, 0, 114, 245, 194, 61, 217, 104, 192, 191, 140, 42, 30, 190, 0, 127, 127, 63, 0, 57, 0, 0, 11, 10, 0, 0, 107, 253, 147, 2, 0, 0, 0, 0, 114, 245, 194, 61, 217, 104, 192, 191, 140, 42, 30, 190, 0, 127, 127, 63, 0, 57, 0, 60, 11, 10, 0, 0, 107, 253, 147, 2, 0, 0, 0, 0, 20, 1, 37, 189, 217, 104, 192, 191, 253, 212, 29, 190, 0, 127, 127, 63, 0, 57, 0, 58, 11, 10, 0, 0, 13, 242, 241, 13, 0, 0, 0, 0, 82, 87, 38, 189, 217, 104, 192, 191, 210, 71, 148, 190, 0, 127, 127, 63, 0, 57, 0, 56, 11, 10, 0, 0, 189, 236, 65, 19, 0, 0, 0, 0, 84, 74, 194, 61, 217, 104, 192, 191, 154, 114, 148, 190, 0, 127, 127, 63, 0, 57, 0, 52, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 114, 245, 194, 61, 3, 190, 147, 191, 140, 42, 30, 190, 0, 127, 0, 63, 0, 59, 0, 52, 10, 11, 0, 0, 244, 163, 10, 92, 0, 0, 0, 0, 20, 1, 37, 189, 3, 190, 147, 191, 253, 212, 29, 190, 0, 127, 0, 63, 0, 59, 0, 56, 10, 11, 0, 0, 172, 230, 82, 25, 0, 0, 0, 0, 82, 87, 38, 189, 3, 190, 147, 191, 210, 71, 148, 190, 0, 127, 0, 63, 0, 57, 0, 56, 10, 11, 0, 0, 23, 165, 231, 90, 0, 0, 0, 0, 84, 74, 194, 61, 3, 190, 147, 191, 154, 114, 148, 190, 0, 127, 0, 63, 0, 57, 0, 52, 10, 11, 0, 0, 45, 131, 209, 124, 0, 0, 0, 0, 31, 208, 134, 190, 10, 34, 200, 191, 200, 16, 245, 189, 130, 0, 0, 127, 0, 57, 0, 58, 11, 10, 0, 0, 103, 253, 151, 2, 0, 0, 0, 0, 31, 208, 134, 190, 10, 34, 200, 191, 200, 16, 245, 189, 226, 96, 127, 193, 0, 57, 0, 58, 11, 10, 0, 0, 103, 253, 151, 2, 0, 0, 0, 0, 31, 208, 134, 190, 10, 34, 200, 191, 200, 16, 245, 189, 0, 0, 127, 193, 0, 57, 0, 58, 11, 10, 0, 0, 103, 253, 151, 2, 0, 0, 0, 0, 31, 208, 134, 190, 84, 125, 217, 191, 200, 16, 245, 189, 130, 0, 0, 127, 0, 54, 0, 58, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 31, 208, 134, 190, 84, 125, 217, 191, 200, 16, 245, 189, 0, 129, 127, 63, 0, 48, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 31, 208, 134, 190, 84, 125, 217, 191, 200, 16, 245, 189, 0, 0, 127, 193, 0, 54, 0, 58, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 85, 16, 135, 190, 84, 125, 217, 191, 35, 97, 165, 190, 130, 0, 0, 127, 0, 54, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 85, 16, 135, 190, 84, 125, 217, 191, 35, 97, 165, 190, 129, 126, 127, 63, 0, 54, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 85, 16, 135, 190, 84, 125, 217, 191, 35, 97, 165, 190, 0, 129, 127, 63, 0, 54, 0, 56, 11, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 85, 16, 135, 190, 10, 34, 200, 191, 35, 97, 165, 190, 130, 0, 0, 127, 0, 57, 0, 56, 11, 10, 0, 0, 81, 250, 173, 5, 0, 0, 0, 0, 85, 16, 135, 190, 10, 34, 200, 191, 35, 97, 165, 190, 226, 96, 127, 193, 0, 57, 0, 56, 11, 10, 0, 0, 81, 250, 173, 5, 0, 0, 0, 0, 85, 16, 135, 190, 10, 34, 200, 191, 35, 97, 165, 190, 129, 126, 127, 63, 0, 57, 0, 56, 11, 10, 0, 0, 81, 250, 173, 5, 0, 0, 0, 0, 202, 103, 5, 62, 84, 125, 217, 191, 34, 155, 165, 62, 0, 129, 129, 126, 0, 48, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 84, 125, 217, 191, 34, 155, 165, 62, 0, 0, 0, 127, 0, 54, 0, 60, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 84, 125, 217, 191, 34, 155, 165, 62, 127, 0, 0, 127, 0, 54, 0, 0, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 217, 104, 192, 191, 34, 155, 165, 62, 0, 127, 127, 63, 0, 57, 0, 60, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 217, 104, 192, 191, 34, 155, 165, 62, 0, 126, 127, 63, 0, 57, 0, 0, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 217, 104, 192, 191, 34, 155, 165, 62, 0, 0, 0, 127, 0, 57, 0, 60, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 202, 103, 5, 62, 217, 104, 192, 191, 34, 155, 165, 62, 127, 0, 0, 127, 0, 57, 0, 0, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 84, 125, 217, 191, 88, 219, 165, 62, 0, 129, 129, 126, 0, 48, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 84, 125, 217, 191, 88, 219, 165, 62, 0, 0, 0, 127, 0, 54, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 217, 104, 192, 191, 88, 219, 165, 62, 226, 96, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 217, 104, 192, 191, 88, 219, 165, 62, 0, 126, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 217, 104, 192, 191, 88, 219, 165, 62, 0, 127, 127, 63, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 136, 164, 149, 189, 217, 104, 192, 191, 88, 219, 165, 62, 0, 0, 0, 127, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 84, 125, 217, 191, 112, 248, 245, 61, 129, 126, 0, 127, 0, 54, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 84, 125, 217, 191, 112, 248, 245, 61, 0, 129, 129, 126, 0, 54, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 84, 125, 217, 191, 112, 248, 245, 61, 127, 0, 0, 127, 0, 54, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 217, 104, 192, 191, 112, 248, 245, 61, 129, 126, 0, 127, 0, 57, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 217, 104, 192, 191, 112, 248, 245, 61, 0, 127, 127, 63, 0, 57, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 217, 104, 192, 191, 112, 248, 245, 61, 0, 126, 127, 63, 0, 57, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 94, 231, 4, 62, 217, 104, 192, 191, 112, 248, 245, 61, 127, 0, 0, 127, 0, 57, 0, 52, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 84, 125, 217, 191, 158, 249, 246, 61, 129, 126, 0, 127, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 84, 125, 217, 191, 158, 249, 246, 61, 129, 126, 127, 63, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 84, 125, 217, 191, 158, 249, 246, 61, 0, 129, 129, 126, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 217, 104, 192, 191, 158, 249, 246, 61, 226, 96, 127, 193, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 217, 104, 192, 191, 158, 249, 246, 61, 129, 126, 0, 127, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 217, 104, 192, 191, 158, 249, 246, 61, 129, 126, 127, 63, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 217, 104, 192, 191, 158, 249, 246, 61, 0, 126, 127, 193, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 96, 165, 150, 189, 217, 104, 192, 191, 158, 249, 246, 61, 0, 127, 127, 63, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 84, 38, 197, 61, 217, 104, 192, 191, 0, 70, 148, 62, 0, 127, 127, 63, 0, 57, 0, 60, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 84, 38, 197, 61, 217, 104, 192, 191, 0, 70, 148, 62, 0, 126, 127, 63, 0, 57, 0, 0, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 82, 159, 32, 189, 217, 104, 192, 191, 199, 112, 148, 62, 0, 126, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 82, 159, 32, 189, 217, 104, 192, 191, 199, 112, 148, 62, 0, 127, 127, 63, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 143, 245, 33, 189, 217, 104, 192, 191, 232, 38, 30, 62, 0, 126, 127, 193, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 143, 245, 33, 189, 217, 104, 192, 191, 232, 38, 30, 62, 0, 127, 127, 63, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 53, 123, 196, 61, 217, 104, 192, 191, 89, 209, 29, 62, 0, 127, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 233, 255, 21, 0, 0, 0, 0, 0, 53, 123, 196, 61, 217, 104, 192, 191, 89, 209, 29, 62, 0, 126, 127, 63, 0, 57, 0, 52, 9, 8, 0, 0, 233, 255, 21, 0, 0, 0, 0, 0, 84, 38, 197, 61, 3, 190, 147, 191, 0, 70, 148, 62, 0, 127, 0, 63, 0, 59, 0, 52, 9, 8, 0, 0, 189, 255, 65, 0, 0, 0, 0, 0, 82, 159, 32, 189, 3, 190, 147, 191, 199, 112, 148, 62, 0, 127, 0, 63, 0, 59, 0, 56, 9, 8, 0, 0, 235, 255, 19, 0, 0, 0, 0, 0, 143, 245, 33, 189, 3, 190, 147, 191, 232, 38, 30, 62, 0, 127, 0, 63, 0, 57, 0, 56, 9, 8, 0, 0, 53, 255, 201, 0, 0, 0, 0, 0, 53, 123, 196, 61, 3, 190, 147, 191, 89, 209, 29, 62, 0, 127, 0, 63, 0, 57, 0, 52, 9, 8, 0, 0, 163, 250, 91, 5, 0, 0, 0, 0, 231, 67, 134, 190, 10, 34, 200, 191, 20, 23, 166, 62, 130, 0, 0, 127, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 231, 67, 134, 190, 10, 34, 200, 191, 20, 23, 166, 62, 226, 96, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 231, 67, 134, 190, 10, 34, 200, 191, 20, 23, 166, 62, 0, 0, 127, 193, 0, 57, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 231, 67, 134, 190, 84, 125, 217, 191, 20, 23, 166, 62, 130, 0, 0, 127, 0, 54, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 231, 67, 134, 190, 84, 125, 217, 191, 20, 23, 166, 62, 0, 129, 127, 63, 0, 48, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 231, 67, 134, 190, 84, 125, 217, 191, 20, 23, 166, 62, 0, 0, 127, 193, 0, 54, 0, 58, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 84, 125, 217, 191, 141, 232, 247, 61, 130, 0, 0, 127, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 84, 125, 217, 191, 141, 232, 247, 61, 129, 126, 127, 63, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 84, 125, 217, 191, 141, 232, 247, 61, 0, 129, 127, 63, 0, 54, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 10, 34, 200, 191, 141, 232, 247, 61, 130, 0, 0, 127, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 10, 34, 200, 191, 141, 232, 247, 61, 226, 96, 127, 193, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 29, 132, 134, 190, 10, 34, 200, 191, 141, 232, 247, 61, 129, 126, 127, 63, 0, 57, 0, 56, 9, 0, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 174, 50, 228, 62, 32, 32, 150, 191, 137, 88, 137, 62, 0, 130, 129, 126, 109, 49, 0, 52, 5, 2, 8, 0, 78, 135, 73, 118, 102, 2, 0, 0, 174, 50, 228, 62, 32, 32, 150, 191, 137, 88, 137, 62, 92, 16, 232, 118, 0, 54, 183, 41, 5, 2, 8, 0, 78, 135, 73, 118, 102, 2, 0, 0, 174, 50, 228, 62, 32, 32, 150, 191, 137, 88, 137, 62, 110, 16, 237, 119, 0, 54, 183, 41, 5, 2, 8, 0, 78, 135, 73, 118, 102, 2, 0, 0, 215, 8, 152, 62, 32, 32, 150, 191, 54, 224, 213, 62, 0, 130, 129, 1, 0, 48, 182, 52, 5, 2, 8, 0, 139, 156, 217, 78, 153, 20, 0, 0, 215, 8, 152, 62, 32, 32, 150, 191, 54, 224, 213, 62, 0, 16, 19, 125, 0, 54, 164, 59, 5, 2, 8, 0, 139, 156, 217, 78, 153, 20, 0, 0, 215, 8, 152, 62, 32, 32, 150, 191, 54, 224, 213, 62, 18, 16, 235, 125, 0, 54, 164, 59, 5, 2, 8, 0, 139, 156, 217, 78, 153, 20, 0, 0, 175, 116, 222, 62, 32, 32, 150, 191, 142, 147, 166, 62, 0, 130, 129, 126, 225, 48, 13, 52, 5, 2, 8, 0, 251, 145, 243, 106, 16, 3, 0, 0, 175, 116, 222, 62, 32, 32, 150, 191, 142, 147, 166, 62, 66, 16, 228, 119, 3, 54, 10, 39, 5, 2, 8, 0, 251, 145, 243, 106, 16, 3, 0, 0, 175, 116, 222, 62, 32, 32, 150, 191, 142, 147, 166, 62, 92, 16, 232, 118, 3, 54, 10, 39, 5, 2, 8, 0, 251, 145, 243, 106, 16, 3, 0, 0, 127, 247, 205, 62, 32, 32, 150, 191, 112, 98, 191, 62, 0, 130, 129, 1, 107, 48, 53, 52, 5, 2, 8, 0, 183, 151, 57, 98, 14, 6, 0, 0, 127, 247, 205, 62, 32, 32, 150, 191, 112, 98, 191, 62, 44, 16, 229, 121, 24, 54, 0, 60, 5, 2, 8, 0, 183, 151, 57, 98, 14, 6, 0, 0, 127, 247, 205, 62, 32, 32, 150, 191, 112, 98, 191, 62, 66, 16, 228, 119, 24, 54, 0, 0, 5, 2, 8, 0, 183, 151, 57, 98, 14, 6, 0, 0, 240, 60, 181, 62, 32, 32, 150, 191, 109, 254, 207, 62, 0, 130, 129, 1, 27, 48, 112, 52, 5, 2, 8, 0, 202, 153, 228, 87, 80, 14, 0, 0, 240, 60, 181, 62, 32, 32, 150, 191, 109, 254, 207, 62, 18, 16, 235, 124, 3, 54, 199, 59, 5, 2, 8, 0, 202, 153, 228, 87, 80, 14, 0, 0, 240, 60, 181, 62, 32, 32, 150, 191, 109, 254, 207, 62, 44, 16, 229, 121, 3, 54, 199, 59, 5, 2, 8, 0, 202, 153, 228, 87, 80, 14, 0, 0, 107, 114, 154, 61, 123, 74, 170, 62, 196, 254, 73, 62, 0, 127, 0, 63, 0, 59, 133, 53, 5, 2, 1, 8, 164, 252, 79, 3, 9, 0, 1, 0, 107, 114, 154, 61, 123, 74, 170, 62, 196, 254, 73, 62, 0, 16, 232, 122, 0, 57, 61, 59, 5, 2, 1, 8, 164, 252, 79, 3, 9, 0, 1, 0, 107, 114, 154, 61, 123, 74, 170, 62, 196, 254, 73, 62, 18, 16, 230, 121, 0, 57, 61, 59, 5, 2, 1, 8, 164, 252, 79, 3, 9, 0, 1, 0, 57, 140, 101, 62, 123, 74, 170, 62, 170, 189, 67, 61, 0, 127, 0, 63, 61, 58, 0, 52, 5, 2, 1, 0, 108, 181, 44, 58, 102, 16, 0, 0, 57, 140, 101, 62, 123, 74, 170, 62, 170, 189, 67, 61, 92, 16, 231, 119, 0, 57, 20, 46, 5, 2, 1, 0, 108, 181, 44, 58, 102, 16, 0, 0, 57, 140, 101, 62, 123, 74, 170, 62, 170, 189, 67, 61, 110, 16, 241, 115, 0, 57, 20, 46, 5, 2, 1, 0, 108, 181, 44, 58, 102, 16, 0, 0, 189, 160, 7, 62, 123, 74, 170, 62, 51, 59, 62, 62, 0, 127, 0, 63, 241, 58, 240, 52, 5, 2, 1, 8, 12, 243, 154, 12, 87, 0, 1, 0, 189, 160, 7, 62, 123, 74, 170, 62, 51, 59, 62, 62, 18, 16, 230, 121, 1, 57, 136, 59, 5, 2, 1, 8, 12, 243, 154, 12, 87, 0, 1, 0, 189, 160, 7, 62, 123, 74, 170, 62, 51, 59, 62, 62, 44, 16, 228, 119, 1, 57, 136, 59, 5, 2, 1, 8, 12, 243, 154, 12, 87, 0, 1, 0, 219, 21, 57, 62, 123, 74, 170, 62, 57, 3, 29, 62, 0, 127, 0, 63, 199, 58, 113, 52, 5, 2, 1, 8, 16, 234, 231, 21, 6, 0, 0, 0, 219, 21, 57, 62, 123, 74, 170, 62, 57, 3, 29, 62, 44, 16, 228, 119, 0, 57, 0, 60, 5, 2, 1, 8, 16, 234, 231, 21, 6, 0, 0, 0, 219, 21, 57, 62, 123, 74, 170, 62, 57, 3, 29, 62, 66, 16, 228, 119, 0, 57, 0, 0, 5, 2, 1, 8, 16, 234, 231, 21, 6, 0, 0, 0, 231, 16, 90, 62, 123, 74, 170, 62, 145, 202, 214, 61, 0, 127, 0, 63, 135, 58, 29, 52, 5, 2, 1, 8, 215, 214, 160, 34, 134, 6, 0, 0, 231, 16, 90, 62, 123, 74, 170, 62, 145, 202, 214, 61, 66, 16, 228, 119, 1, 57, 127, 43, 5, 2, 1, 8, 215, 214, 160, 34, 134, 6, 0, 0, 231, 16, 90, 62, 123, 74, 170, 62, 145, 202, 214, 61, 92, 16, 231, 119, 1, 57, 127, 43, 5, 2, 1, 8, 215, 214, 160, 34, 134, 6, 0, 0, 144, 4, 117, 190, 32, 32, 150, 191, 136, 137, 214, 62, 238, 16, 24, 122, 0, 54, 91, 58, 5, 2, 8, 0, 145, 185, 105, 44, 3, 26, 0, 0, 144, 4, 117, 190, 32, 32, 150, 191, 136, 137, 214, 62, 0, 130, 129, 126, 0, 48, 73, 55, 5, 2, 8, 0, 145, 185, 105, 44, 3, 26, 0, 0, 144, 4, 117, 190, 32, 32, 150, 191, 136, 137, 214, 62, 0, 16, 19, 125, 0, 54, 91, 58, 5, 2, 8, 0, 145, 185, 105, 44, 3, 26, 0, 0, 246, 9, 199, 190, 32, 32, 150, 191, 8, 96, 138, 62, 164, 16, 21, 118, 0, 54, 164, 57, 2, 5, 8, 0, 145, 126, 45, 98, 64, 31, 0, 0, 246, 9, 199, 190, 32, 32, 150, 191, 8, 96, 138, 62, 0, 130, 129, 1, 109, 49, 0, 56, 2, 5, 8, 0, 145, 126, 45, 98, 64, 31, 0, 0, 55, 189, 151, 190, 32, 32, 150, 191, 202, 203, 208, 62, 212, 16, 28, 119, 3, 54, 56, 58, 5, 8, 2, 0, 122, 164, 135, 55, 253, 35, 0, 0, 55, 189, 151, 190, 32, 32, 150, 191, 202, 203, 208, 62, 238, 16, 24, 123, 3, 54, 56, 58, 5, 8, 2, 0, 122, 164, 135, 55, 253, 35, 0, 0, 55, 189, 151, 190, 32, 32, 150, 191, 202, 203, 208, 62, 0, 130, 129, 126, 27, 48, 143, 55, 5, 8, 2, 0, 122, 164, 135, 55, 253, 35, 0, 0, 48, 140, 176, 190, 32, 32, 150, 191, 89, 78, 192, 62, 190, 16, 27, 118, 24, 54, 0, 58, 5, 8, 2, 0, 93, 150, 25, 60, 136, 45, 0, 0, 48, 140, 176, 190, 32, 32, 150, 191, 89, 78, 192, 62, 212, 16, 28, 119, 24, 54, 0, 58, 5, 8, 2, 0, 93, 150, 25, 60, 136, 45, 0, 0, 48, 140, 176, 190, 32, 32, 150, 191, 89, 78, 192, 62, 0, 130, 129, 126, 107, 48, 202, 55, 5, 8, 2, 0, 93, 150, 25, 60, 136, 45, 0, 0, 237, 39, 193, 190, 32, 32, 150, 191, 225, 147, 167, 62, 164, 16, 21, 118, 3, 54, 199, 57, 5, 2, 8, 0, 107, 130, 111, 72, 35, 53, 0, 0, 237, 39, 193, 190, 32, 32, 150, 191, 225, 147, 167, 62, 190, 16, 27, 118, 3, 54, 199, 57, 5, 2, 8, 0, 107, 130, 111, 72, 35, 53, 0, 0, 237, 39, 193, 190, 32, 32, 150, 191, 225, 147, 167, 62, 0, 130, 129, 126, 225, 48, 242, 55, 5, 2, 8, 0, 107, 130, 111, 72, 35, 53, 0, 0, 235, 81, 44, 190, 123, 74, 170, 62, 15, 157, 71, 61, 164, 16, 26, 119, 0, 57, 61, 57, 5, 2, 1, 8, 97, 153, 166, 101, 247, 0, 0, 0, 235, 81, 44, 190, 123, 74, 170, 62, 15, 157, 71, 61, 0, 127, 0, 63, 61, 58, 0, 56, 5, 2, 1, 8, 97, 153, 166, 101, 247, 0, 0, 0, 138, 20, 154, 188, 123, 74, 170, 62, 69, 58, 74, 62, 238, 16, 25, 122, 0, 57, 194, 58, 5, 2, 8, 0, 16, 255, 233, 0, 5, 0, 0, 0, 138, 20, 154, 188, 123, 74, 170, 62, 69, 58, 74, 62, 0, 127, 0, 63, 0, 59, 122, 54, 5, 2, 8, 0, 16, 255, 233, 0, 5, 0, 0, 0, 138, 20, 154, 188, 123, 74, 170, 62, 69, 58, 74, 62, 0, 16, 234, 123, 0, 57, 194, 58, 5, 2, 8, 0, 16, 255, 233, 0, 5, 0, 0, 0, 134, 142, 32, 190, 123, 74, 170, 62, 151, 157, 216, 61, 164, 16, 26, 119, 1, 57, 136, 57, 5, 2, 1, 8, 96, 192, 112, 63, 42, 0, 3, 0, 134, 142, 32, 190, 123, 74, 170, 62, 151, 157, 216, 61, 190, 16, 28, 119, 1, 57, 136, 57, 5, 2, 1, 8, 96, 192, 112, 63, 42, 0, 3, 0, 134, 142, 32, 190, 123, 74, 170, 62, 151, 157, 216, 61, 0, 127, 0, 63, 135, 58, 226, 55, 5, 2, 1, 8, 96, 192, 112, 63, 42, 0, 3, 0, 192, 172, 254, 189, 123, 74, 170, 62, 232, 195, 29, 62, 190, 16, 28, 119, 0, 57, 0, 58, 5, 2, 8, 0, 230, 222, 17, 33, 6, 0, 0, 0, 192, 172, 254, 189, 123, 74, 170, 62, 232, 195, 29, 62, 212, 16, 28, 120, 0, 57, 0, 58, 5, 2, 8, 0, 230, 222, 17, 33, 6, 0, 0, 0, 192, 172, 254, 189, 123, 74, 170, 62, 232, 195, 29, 62, 0, 127, 0, 63, 199, 58, 142, 55, 5, 2, 8, 0, 230, 222, 17, 33, 6, 0, 0, 0, 222, 112, 155, 189, 123, 74, 170, 62, 200, 190, 62, 62, 212, 16, 28, 120, 1, 57, 119, 58, 5, 2, 8, 0, 47, 238, 197, 17, 9, 0, 0, 0, 222, 112, 155, 189, 123, 74, 170, 62, 200, 190, 62, 62, 238, 16, 25, 122, 1, 57, 119, 58, 5, 2, 8, 0, 47, 238, 197, 17, 9, 0, 0, 0, 222, 112, 155, 189, 123, 74, 170, 62, 200, 190, 62, 62, 0, 127, 0, 63, 241, 58, 15, 55, 5, 2, 8, 0, 47, 238, 197, 17, 9, 0, 0, 0, 89, 1, 151, 62, 32, 32, 150, 191, 22, 92, 213, 190, 146, 126, 253, 117, 0, 54, 182, 52, 2, 5, 8, 0, 11, 187, 221, 62, 22, 6, 0, 0, 89, 1, 151, 62, 32, 32, 150, 191, 22, 92, 213, 190, 0, 130, 129, 1, 0, 54, 182, 52, 2, 5, 8, 0, 11, 187, 221, 62, 22, 6, 0, 0, 89, 1, 151, 62, 32, 32, 150, 191, 22, 92, 213, 190, 110, 108, 248, 114, 0, 54, 182, 52, 2, 5, 8, 0, 11, 187, 221, 62, 22, 6, 0, 0, 91, 137, 227, 62, 32, 32, 150, 191, 170, 50, 137, 190, 0, 130, 129, 1, 73, 53, 0, 52, 2, 5, 8, 0, 3, 181, 226, 73, 25, 1, 0, 0, 91, 137, 227, 62, 32, 32, 150, 191, 170, 50, 137, 190, 110, 34, 239, 116, 0, 54, 146, 50, 2, 5, 8, 0, 3, 181, 226, 73, 25, 1, 0, 0, 91, 137, 227, 62, 32, 32, 150, 191, 170, 50, 137, 190, 110, 16, 237, 119, 0, 54, 146, 50, 2, 5, 8, 0, 3, 181, 226, 73, 25, 1, 0, 0, 157, 60, 180, 62, 32, 32, 150, 191, 109, 158, 207, 190, 0, 130, 129, 1, 242, 53, 112, 52, 2, 5, 8, 0, 36, 187, 1, 65, 216, 3, 0, 0, 157, 60, 180, 62, 32, 32, 150, 191, 109, 158, 207, 190, 110, 108, 249, 114, 3, 54, 112, 52, 2, 5, 8, 0, 36, 187, 1, 65, 216, 3, 0, 0, 157, 60, 180, 62, 32, 32, 150, 191, 109, 158, 207, 190, 110, 82, 242, 112, 3, 54, 112, 52, 2, 5, 8, 0, 36, 187, 1, 65, 216, 3, 0, 0, 149, 11, 205, 62, 32, 32, 150, 191, 253, 32, 191, 190, 0, 130, 129, 126, 202, 53, 53, 52, 2, 5, 8, 0, 9, 186, 143, 67, 102, 2, 0, 0, 149, 11, 205, 62, 32, 32, 150, 191, 253, 32, 191, 190, 110, 82, 242, 112, 24, 54, 0, 52, 2, 5, 8, 0, 9, 186, 143, 67, 102, 2, 0, 0, 149, 11, 205, 62, 32, 32, 150, 191, 253, 32, 191, 190, 110, 60, 240, 113, 24, 54, 0, 52, 2, 5, 8, 0, 9, 186, 143, 67, 102, 2, 0, 0, 83, 167, 221, 62, 32, 32, 150, 191, 109, 102, 166, 190, 0, 130, 129, 126, 143, 53, 13, 52, 2, 5, 8, 0, 46, 184, 84, 70, 123, 1, 0, 0, 83, 167, 221, 62, 32, 32, 150, 191, 109, 102, 166, 190, 110, 60, 240, 113, 3, 54, 30, 51, 2, 5, 8, 0, 46, 184, 84, 70, 123, 1, 0, 0, 83, 167, 221, 62, 32, 32, 150, 191, 109, 102, 166, 190, 110, 34, 239, 116, 3, 54, 30, 51, 2, 5, 8, 0, 46, 184, 84, 70, 123, 1, 0, 0, 184, 80, 101, 62, 123, 74, 170, 62, 26, 50, 62, 189, 0, 127, 0, 63, 194, 57, 0, 52, 2, 5, 1, 8, 91, 157, 222, 94, 196, 3, 0, 0, 184, 80, 101, 62, 123, 74, 170, 62, 26, 50, 62, 189, 110, 34, 241, 113, 0, 57, 245, 48, 2, 5, 1, 8, 91, 157, 222, 94, 196, 3, 0, 0, 184, 80, 101, 62, 123, 74, 170, 62, 26, 50, 62, 189, 110, 16, 242, 114, 0, 57, 245, 48, 2, 5, 1, 8, 91, 157, 222, 94, 196, 3, 0, 0, 185, 130, 152, 61, 123, 74, 170, 62, 94, 223, 71, 190, 146, 126, 7, 115, 0, 57, 133, 53, 2, 1, 5, 8, 234, 245, 58, 6, 212, 3, 5, 0, 185, 130, 152, 61, 123, 74, 170, 62, 94, 223, 71, 190, 0, 127, 0, 63, 0, 57, 133, 53, 2, 1, 5, 8, 234, 245, 58, 6, 212, 3, 5, 0, 185, 130, 152, 61, 123, 74, 170, 62, 94, 223, 71, 190, 110, 108, 247, 114, 0, 57, 133, 53, 2, 1, 5, 8, 234, 245, 58, 6, 212, 3, 5, 0, 82, 141, 89, 62, 123, 74, 170, 62, 27, 232, 211, 189, 0, 127, 0, 63, 120, 57, 29, 52, 2, 5, 1, 8, 0, 190, 182, 65, 72, 0, 0, 0, 82, 141, 89, 62, 123, 74, 170, 62, 27, 232, 211, 189, 110, 60, 242, 112, 1, 57, 32, 50, 2, 5, 1, 8, 0, 190, 182, 65, 72, 0, 0, 0, 82, 141, 89, 62, 123, 74, 170, 62, 27, 232, 211, 189, 110, 34, 241, 113, 1, 57, 32, 50, 2, 5, 1, 8, 0, 190, 182, 65, 72, 0, 0, 0, 44, 85, 56, 62, 123, 74, 170, 62, 255, 104, 27, 190, 0, 127, 0, 63, 56, 57, 113, 52, 2, 5, 8, 0, 254, 213, 255, 41, 1, 0, 0, 0, 44, 85, 56, 62, 123, 74, 170, 62, 255, 104, 27, 190, 110, 82, 244, 112, 0, 57, 0, 52, 2, 5, 8, 0, 254, 213, 255, 41, 1, 0, 0, 0, 44, 85, 56, 62, 123, 74, 170, 62, 255, 104, 27, 190, 110, 60, 242, 112, 0, 57, 0, 52, 2, 5, 8, 0, 254, 213, 255, 41, 1, 0, 0, 0, 58, 183, 6, 62, 123, 74, 170, 62, 12, 100, 60, 190, 0, 127, 0, 63, 14, 57, 240, 52, 2, 5, 1, 8, 241, 231, 47, 23, 217, 0, 4, 0, 58, 183, 6, 62, 123, 74, 170, 62, 12, 100, 60, 190, 110, 108, 247, 114, 1, 57, 239, 52, 2, 5, 1, 8, 241, 231, 47, 23, 217, 0, 4, 0, 58, 183, 6, 62, 123, 74, 170, 62, 12, 100, 60, 190, 110, 82, 244, 112, 1, 57, 239, 52, 2, 5, 1, 8, 241, 231, 47, 23, 217, 0, 4, 0, 73, 179, 199, 190, 32, 32, 150, 191, 43, 43, 136, 190, 146, 34, 16, 114, 0, 54, 91, 56, 2, 5, 8, 0, 93, 177, 38, 57, 123, 21, 0, 0, 73, 179, 199, 190, 32, 32, 150, 191, 43, 43, 136, 190, 0, 130, 129, 126, 73, 53, 0, 56, 2, 5, 8, 0, 93, 177, 38, 57, 123, 21, 0, 0, 141, 19, 119, 190, 32, 32, 150, 191, 195, 178, 212, 190, 146, 108, 3, 116, 0, 54, 73, 55, 2, 5, 8, 0, 222, 165, 168, 48, 120, 41, 0, 0, 141, 19, 119, 190, 32, 32, 150, 191, 195, 178, 212, 190, 146, 126, 253, 117, 0, 54, 73, 55, 2, 5, 8, 0, 222, 165, 168, 48, 120, 41, 0, 0, 141, 19, 119, 190, 32, 32, 150, 191, 195, 178, 212, 190, 0, 130, 129, 1, 0, 54, 73, 55, 2, 5, 8, 0, 222, 165, 168, 48, 120, 41, 0, 0, 74, 245, 193, 190, 32, 32, 150, 191, 26, 102, 165, 190, 146, 34, 16, 114, 3, 54, 56, 56, 2, 5, 8, 0, 162, 173, 18, 54, 73, 28, 0, 0, 74, 245, 193, 190, 32, 32, 150, 191, 26, 102, 165, 190, 146, 60, 14, 112, 3, 54, 56, 56, 2, 5, 8, 0, 162, 173, 18, 54, 73, 28, 0, 0, 74, 245, 193, 190, 32, 32, 150, 191, 26, 102, 165, 190, 0, 130, 129, 126, 143, 53, 242, 55, 2, 5, 8, 0, 162, 173, 18, 54, 73, 28, 0, 0, 26, 120, 177, 190, 32, 32, 150, 191, 19, 53, 190, 190, 146, 60, 14, 112, 24, 54, 0, 56, 2, 5, 8, 0, 217, 170, 177, 51, 116, 33, 0, 0, 26, 120, 177, 190, 32, 32, 150, 191, 19, 53, 190, 190, 146, 82, 11, 113, 24, 54, 0, 56, 2, 5, 8, 0, 217, 170, 177, 51, 116, 33, 0, 0, 26, 120, 177, 190, 32, 32, 150, 191, 19, 53, 190, 190, 0, 130, 129, 126, 202, 53, 202, 55, 2, 5, 8, 0, 217, 170, 177, 51, 116, 33, 0, 0, 138, 189, 152, 190, 32, 32, 150, 191, 16, 209, 206, 190, 146, 82, 10, 113, 3, 54, 143, 55, 2, 5, 8, 0, 224, 167, 10, 50, 20, 38, 0, 0, 138, 189, 152, 190, 32, 32, 150, 191, 16, 209, 206, 190, 146, 108, 4, 116, 3, 54, 143, 55, 2, 5, 8, 0, 224, 167, 10, 50, 20, 38, 0, 0, 138, 189, 152, 190, 32, 32, 150, 191, 16, 209, 206, 190, 0, 130, 129, 126, 242, 53, 143, 55, 2, 5, 8, 0, 224, 167, 10, 50, 20, 38, 0, 0, 83, 211, 161, 188, 123, 74, 170, 62, 220, 163, 71, 190, 146, 108, 11, 113, 0, 57, 122, 54, 2, 5, 1, 8, 85, 250, 127, 3, 16, 2, 25, 0, 83, 211, 161, 188, 123, 74, 170, 62, 220, 163, 71, 190, 146, 126, 9, 114, 0, 57, 122, 54, 2, 5, 1, 8, 85, 250, 127, 3, 16, 2, 25, 0, 83, 211, 161, 188, 123, 74, 170, 62, 220, 163, 71, 190, 0, 127, 0, 63, 0, 57, 122, 54, 2, 5, 1, 8, 85, 250, 127, 3, 16, 2, 25, 0, 108, 141, 44, 190, 123, 74, 170, 62, 10, 82, 58, 189, 146, 34, 15, 114, 0, 57, 194, 56, 2, 5, 1, 8, 152, 197, 161, 57, 196, 0, 0, 0, 108, 141, 44, 190, 123, 74, 170, 62, 10, 82, 58, 189, 0, 127, 0, 63, 194, 57, 0, 56, 2, 5, 1, 8, 152, 197, 161, 57, 196, 0, 0, 0, 228, 67, 157, 189, 123, 74, 170, 62, 119, 224, 59, 190, 146, 82, 14, 112, 1, 57, 16, 55, 2, 5, 1, 8, 67, 240, 24, 14, 117, 1, 45, 0, 228, 67, 157, 189, 123, 74, 170, 62, 119, 224, 59, 190, 146, 108, 11, 113, 1, 57, 16, 55, 2, 5, 1, 8, 67, 240, 24, 14, 117, 1, 45, 0, 228, 67, 157, 189, 123, 74, 170, 62, 119, 224, 59, 190, 0, 127, 0, 63, 14, 57, 15, 55, 2, 5, 1, 8, 67, 240, 24, 14, 117, 1, 45, 0, 15, 23, 0, 190, 123, 74, 170, 62, 80, 168, 26, 190, 146, 60, 15, 112, 0, 57, 0, 56, 2, 5, 8, 0, 36, 228, 179, 27, 38, 0, 0, 0, 15, 23, 0, 190, 123, 74, 170, 62, 80, 168, 26, 190, 146, 82, 14, 112, 0, 57, 0, 56, 2, 5, 8, 0, 36, 228, 179, 27, 38, 0, 0, 0, 15, 23, 0, 190, 123, 74, 170, 62, 80, 168, 26, 190, 0, 127, 0, 63, 56, 57, 142, 55, 2, 5, 8, 0, 36, 228, 179, 27, 38, 0, 0, 0, 27, 18, 33, 190, 123, 74, 170, 62, 21, 21, 210, 189, 146, 34, 15, 114, 1, 57, 119, 56, 2, 5, 1, 8, 174, 219, 139, 35, 189, 0, 7, 0, 27, 18, 33, 190, 123, 74, 170, 62, 21, 21, 210, 189, 146, 60, 15, 112, 1, 57, 119, 56, 2, 5, 1, 8, 174, 219, 139, 35, 189, 0, 7, 0, 27, 18, 33, 190, 123, 74, 170, 62, 21, 21, 210, 189, 0, 127, 0, 63, 120, 57, 226, 55, 2, 5, 1, 8, 174, 219, 139, 35, 189, 0, 7, 0 ),
+"array_index_data": PoolByteArray( 159, 0, 116, 0, 171, 0, 159, 0, 98, 0, 116, 0, 187, 0, 172, 0, 199, 0, 187, 0, 154, 0, 172, 0, 173, 0, 205, 0, 200, 0, 205, 0, 211, 0, 208, 0, 211, 0, 141, 0, 202, 0, 141, 0, 150, 0, 147, 0, 150, 0, 143, 0, 153, 0, 143, 0, 117, 0, 111, 0, 117, 0, 123, 0, 120, 0, 123, 0, 169, 0, 114, 0, 169, 0, 178, 0, 175, 0, 178, 0, 173, 0, 181, 0, 173, 0, 211, 0, 205, 0, 211, 0, 150, 0, 141, 0, 150, 0, 117, 0, 143, 0, 117, 0, 169, 0, 123, 0, 169, 0, 173, 0, 178, 0, 173, 0, 150, 0, 211, 0, 150, 0, 169, 0, 117, 0, 150, 0, 173, 0, 169, 0, 100, 0, 144, 0, 112, 0, 100, 0, 128, 0, 144, 0, 1, 0, 11, 0, 5, 0, 1, 0, 8, 0, 11, 0, 9, 0, 42, 0, 20, 0, 9, 0, 33, 0, 42, 0, 18, 0, 15, 0, 21, 0, 18, 0, 12, 0, 15, 0, 14, 0, 6, 0, 17, 0, 14, 0, 2, 0, 6, 0, 7, 0, 13, 0, 19, 0, 7, 0, 0, 0, 13, 0, 22, 0, 25, 0, 10, 0, 22, 0, 26, 0, 25, 0, 16, 0, 26, 0, 22, 0, 16, 0, 27, 0, 26, 0, 10, 0, 24, 0, 4, 0, 10, 0, 25, 0, 24, 0, 3, 0, 27, 0, 16, 0, 3, 0, 23, 0, 27, 0, 30, 0, 28, 0, 29, 0, 30, 0, 31, 0, 28, 0, 35, 0, 41, 0, 32, 0, 35, 0, 38, 0, 41, 0, 8, 0, 34, 0, 11, 0, 8, 0, 37, 0, 34, 0, 21, 0, 39, 0, 18, 0, 21, 0, 43, 0, 39, 0, 19, 0, 36, 0, 7, 0, 19, 0, 40, 0, 36, 0, 45, 0, 56, 0, 49, 0, 45, 0, 52, 0, 56, 0, 53, 0, 94, 0, 67, 0, 53, 0, 85, 0, 94, 0, 64, 0, 60, 0, 68, 0, 64, 0, 57, 0, 60, 0, 59, 0, 50, 0, 63, 0, 59, 0, 46, 0, 50, 0, 51, 0, 58, 0, 66, 0, 51, 0, 44, 0, 58, 0, 70, 0, 74, 0, 54, 0, 70, 0, 76, 0, 74, 0, 61, 0, 77, 0, 71, 0, 61, 0, 78, 0, 77, 0, 55, 0, 72, 0, 47, 0, 55, 0, 75, 0, 72, 0, 48, 0, 79, 0, 62, 0, 48, 0, 73, 0, 79, 0, 82, 0, 80, 0, 81, 0, 82, 0, 83, 0, 80, 0, 87, 0, 93, 0, 84, 0, 87, 0, 90, 0, 93, 0, 52, 0, 86, 0, 56, 0, 52, 0, 89, 0, 86, 0, 69, 0, 91, 0, 65, 0, 69, 0, 95, 0, 91, 0, 66, 0, 88, 0, 51, 0, 66, 0, 92, 0, 88, 0, 97, 0, 125, 0, 115, 0, 97, 0, 104, 0, 125, 0, 103, 0, 122, 0, 124, 0, 103, 0, 107, 0, 122, 0, 106, 0, 119, 0, 121, 0, 106, 0, 110, 0, 119, 0, 109, 0, 113, 0, 118, 0, 109, 0, 101, 0, 113, 0, 140, 0, 137, 0, 129, 0, 140, 0, 145, 0, 137, 0, 146, 0, 134, 0, 138, 0, 146, 0, 148, 0, 134, 0, 149, 0, 131, 0, 135, 0, 149, 0, 151, 0, 131, 0, 152, 0, 126, 0, 132, 0, 152, 0, 142, 0, 126, 0, 198, 0, 196, 0, 186, 0, 198, 0, 204, 0, 196, 0, 203, 0, 193, 0, 195, 0, 203, 0, 207, 0, 193, 0, 206, 0, 190, 0, 192, 0, 206, 0, 210, 0, 190, 0, 209, 0, 184, 0, 189, 0, 209, 0, 201, 0, 184, 0, 170, 0, 168, 0, 158, 0, 170, 0, 177, 0, 168, 0, 176, 0, 165, 0, 167, 0, 176, 0, 180, 0, 165, 0, 179, 0, 162, 0, 164, 0, 179, 0, 183, 0, 162, 0, 182, 0, 156, 0, 161, 0, 182, 0, 174, 0, 156, 0, 99, 0, 133, 0, 127, 0, 133, 0, 139, 0, 136, 0, 139, 0, 185, 0, 130, 0, 185, 0, 194, 0, 191, 0, 194, 0, 188, 0, 197, 0, 188, 0, 160, 0, 155, 0, 160, 0, 166, 0, 163, 0, 166, 0, 96, 0, 157, 0, 96, 0, 105, 0, 102, 0, 105, 0, 99, 0, 108, 0, 99, 0, 139, 0, 133, 0, 139, 0, 194, 0, 185, 0, 194, 0, 160, 0, 188, 0, 160, 0, 96, 0, 166, 0, 96, 0, 99, 0, 105, 0, 99, 0, 194, 0, 139, 0, 194, 0, 96, 0, 160, 0, 194, 0, 99, 0, 96, 0 ),
+"blend_shape_data": [  ],
+"format": 2194903,
+"index_count": 390,
+"material": ExtResource( 3 ),
+"primitive": 4,
+"skeleton_aabb": [ AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.168508, 0.332599, -0.195188, 0.392676, 1.00136e-05, 0.392459 ), AABB( -0.39004, -1.17286, -0.416718, 0.835749, 1.50545, 0.835736 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.39004, -1.17286, -0.416718, 0.835749, 1.50545, 0.835736 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( 0, 0, 0, -1, -1, -1 ), AABB( -0.39004, -1.5032, -0.416718, 0.835739, 1.8358, 0.835736 ), AABB( -0.262727, -1.69914, 0.120103, 0.393015, 0.544901, 0.204292 ), AABB( -0.263796, -1.56354, -0.323462, 0.393015, 0.409303, 0.203802 ), AABB( -0.263796, -1.69914, -0.323952, 0.393015, 0.544901, 0.204291 ) ],
+"vertex_count": 212
+}
+
+[sub_resource type="Skin" id=11]
+resource_name = "Skin"
+bind_count = 12
+bind/0/name = "Body"
+bind/0/bone = -1
+bind/0/pose = Transform( 1, -0.000339238, -1.45057e-06, 0.000339239, 0.999968, 0.00802469, -1.27177e-06, -0.00802475, 0.999968, -0.0193371, 0.989869, -0.00377045 )
+bind/1/name = "Head"
+bind/1/bone = -1
+bind/1/pose = Transform( 0.999122, 0.0419023, 3.21079e-05, -0.0419011, 0.999098, -0.00684195, -0.000318772, 0.00683453, 0.999977, -0.031123, -0.278304, -0.00791618 )
+bind/2/name = "Shoulder.Right"
+bind/2/bone = -1
+bind/2/pose = Transform( 0.994576, -0.068753, 0.0780487, 0.0217158, -0.596585, -0.802256, 0.10172, 0.799599, -0.591857, -0.000585415, 0.171095, -0.221835 )
+bind/3/name = "Arm.Right"
+bind/3/bone = -1
+bind/3/pose = Transform( 0.997087, -0.0762604, -0.00158572, -0.00321543, -0.0212522, -0.999769, 0.076209, 0.996862, -0.0214357, -0.0144238, -0.182858, -0.142141 )
+bind/4/name = "Forearm.Right"
+bind/4/bone = -1
+bind/4/pose = Transform( 0.997067, -0.0765272, -0.000490266, -0.00283187, -0.0304927, -0.999531, 0.0764763, 0.996601, -0.0306201, -0.0137504, -0.57881, -0.147469 )
+bind/5/name = "Shoulder.Left"
+bind/5/bone = -1
+bind/5/pose = Transform( 0.994576, 0.0687532, 0.0780488, -0.0217158, -0.596585, 0.802256, 0.10172, -0.799599, -0.591857, -0.0443089, 0.161, 0.225506 )
+bind/6/name = "Arm.Left"
+bind/6/bone = -1
+bind/6/pose = Transform( 0.995516, 0.0945889, -4.74832e-09, -4.39137e-08, 2.65257e-07, 1, 0.0945889, -0.995517, 8.93585e-08, -0.0322759, -0.19966, 0.134258 )
+bind/7/name = "Forearm.Left"
+bind/7/bone = -1
+bind/7/pose = Transform( 0.995516, 0.0945889, 1.55629e-15, -4.01884e-08, 1.7585e-07, 1, 0.0945889, -0.995517, -6.98956e-15, -0.0322759, -0.596304, 0.134258 )
+bind/8/name = "Leg.Joint.Left"
+bind/8/bone = -1
+bind/8/pose = Transform( -0.99956, -0.0156207, 0.0252044, 0.0294324, -0.626005, 0.779263, 0.0036055, 0.779662, 0.62619, 0.0036356, -0.616974, 0.774312 )
+bind/9/name = "Leg.Left"
+bind/9/bone = -1
+bind/9/pose = Transform( -0.998801, -0.0415925, 0.0258268, 0.0419234, -0.999044, 0.0124059, 0.0252861, 0.0134739, 0.999589, -0.0266674, -1.16358, -0.193762 )
+bind/10/name = "Leg.Joint.Right"
+bind/10/bone = -1
+bind/10/pose = Transform( 0.999049, -0.0155318, 0.0407373, 0.0225608, -0.61538, -0.787908, 0.0373065, 0.788078, -0.614444, -0.0341877, -0.612865, 0.776825 )
+bind/11/name = "Leg.Right"
+bind/11/bone = -1
+bind/11/pose = Transform( 0.99589, 0.040646, 0.0809436, 0.0418174, -0.999043, -0.0128287, 0.0803447, 0.0161607, -0.996636, 0.0409876, -1.17226, -0.216291 )
+
+[sub_resource type="BoxShape" id=9]
+extents = Vector3( 0.495166, 1.34518, 0.399712 )
+
+[sub_resource type="Animation" id=12]
+resource_name = "ArmatureAction"
+length = 3.20833
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Take_Damage/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0, 1, 0, 0, 0, 2.16212e-19, 4.36557e-11, 4.09273e-10, 1, 1, 1, 1, 0.0666667, 1, 0, 0, 0, -7.02677e-07, 0.000149951, -0.0219161, 0.99976, 1, 1, 1, 0.133333, 1, 0, 0, 0, -2.33443e-06, 0.000497874, -0.0727665, 0.997349, 1, 1, 1, 0.266667, 1, 0, 0, 0, -6.75054e-06, 0.00143904, -0.210322, 0.977631, 1, 1, 1, 0.333333, 1, 0, 0, 0, -8.567e-06, 0.00182622, -0.26691, 0.96372, 1, 1, 1, 0.4, 1, 0, 0, 0, -9.41847e-06, 0.00200788, -0.29346, 0.955969, 1, 1, 1, 0.466667, 1, 0, 0, 0, -9.12721e-06, 0.0019455, -0.284343, 0.958721, 1, 1, 1, 0.533333, 1, 0, 0, 0, -7.73189e-06, 0.00164819, -0.240891, 0.970551, 1, 1, 1, 0.666667, 1, 0, 0, 0, -3.38654e-06, 0.000721878, -0.105506, 0.994418, 1, 1, 1, 0.733333, 1, 0, 0, 0, -1.42481e-06, 0.000303938, -0.0444219, 0.999013, 1, 1, 1, 0.8, 1, 0, 0, 0, -2.1219e-07, 4.55194e-05, -0.00665289, 0.999978, 1, 1, 1, 0.866667, 1, 0, 0, 0, -7.64052e-07, 0.000163172, -0.0238483, 0.999716, 1, 1, 1, 0.933333, 1, 0, 0, 0, -8.68326e-07, 0.00018573, -0.0271453, 0.999632, 1, 1, 1, 1, 1, 0, 0, 0, -6.39459e-07, 0.000136536, -0.0199553, 0.999801, 1, 1, 1, 1.2, 1, 0, 0, 0, 3.23751e-07, -6.8836e-05, 0.0100607, 0.999949, 1, 1, 1, 1.26667, 1, 0, 0, 0, 4.84389e-07, -0.000103051, 0.0150614, 0.999887, 1, 1, 1, 1.33333, 1, 0, 0, 0, 5.08211e-07, -0.000108167, 0.0158091, 0.999875, 1, 1, 1, 1.4, 1, 0, 0, 0, 4.97045e-07, -0.00010589, 0.0154763, 0.99988, 1, 1, 1, 1.46667, 1, 0, 0, 0, 4.63929e-07, -9.8871e-05, 0.0144504, 0.999896, 1, 1, 1, 1.53333, 1, 0, 0, 0, 3.93334e-07, -8.38479e-05, 0.0122547, 0.999925, 1, 1, 1, 1.6, 1, 0, 0, 0, 2.71383e-07, -5.7557e-05, 0.00841221, 0.999965, 1, 1, 1, 1.66667, 1, 0, 0, 0, 8.62174e-08, -1.82162e-05, 0.00266239, 0.999997, 1, 1, 1, 1.73333, 1, 0, 0, 0, -3.08527e-06, 0.000657761, -0.0961347, 0.995368, 1, 1, 1, 1.8, 1, 0, 0, 0, -5.08082e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1, 3.20833, 1, 0, 0, 0, -5.08087e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Take_Damage/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 0, 1, 0, 0, 0, 4.65661e-10, 1.08526e-20, 2.33058e-11, 1, 1, 1, 1, 3.20833, 1, 0, 0, 0, -3.72529e-09, 4.2055e-09, -7.50572e-09, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Take_Damage/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0, 1, 0, 0, 0, -8.9407e-08, -1.86264e-09, -7.45058e-09, 1, 1, 1, 1, 0.0666667, 1, 0, 0, 0, 0.032505, -0.000104823, 0.00248442, 0.999469, 1, 1, 1, 0.133333, 1, 0, 0, 0, 0.108596, -0.000350202, 0.00830015, 0.994051, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.211397, -0.000681724, 0.0161574, 0.977266, 1, 1, 1, 0.266667, 1, 0, 0, 0, 0.314197, -0.00101323, 0.0240146, 0.949054, 1, 1, 1, 0.333333, 1, 0, 0, 0, 0.39607, -0.00127726, 0.0302723, 0.91772, 1, 1, 1, 0.4, 1, 0, 0, 0, 0.433415, -0.00139769, 0.0331267, 0.900584, 1, 1, 1, 0.466667, 1, 0, 0, 0, 0.422827, -0.00133595, 0.0321694, 0.905638, 1, 1, 1, 0.533333, 1, 0, 0, 0, 0.369255, -0.001076, 0.0276069, 0.928917, 1, 1, 1, 0.666667, 1, 0, 0, 0, 0.195334, -0.000344108, 0.0133962, 0.980645, 1, 1, 1, 0.8, 1, 0, 0, 0, 0.029852, 3.28144e-05, 0.00158905, 0.999553, 1, 1, 1, 0.866667, 1, 0, 0, 0, -0.069458, 0.160998, 0.342557, 0.92299, 1, 1, 1, 0.933333, 1, 0, 0, 0, -0.0839134, 0.179857, 0.382157, 0.902533, 1, 1, 1, 1, 1, 0, 0, 0, -0.0780937, 0.124441, 0.262739, 0.953616, 1, 1, 1, 1.06667, 1, 0, 0, 0, -0.0657882, 0.0323506, 0.0645098, 0.995221, 1, 1, 1, 1.13333, 1, 0, 0, 0, -0.049125, -0.0672885, -0.149689, 0.985217, 1, 1, 1, 1.2, 1, 0, 0, 0, -0.0339139, -0.143807, -0.313983, 0.937861, 1, 1, 1, 1.26667, 1, 0, 0, 0, -0.0257668, -0.180572, -0.392851, 0.901331, 1, 1, 1, 1.33333, 1, 0, 0, 0, -0.0265695, -0.177066, -0.385334, 0.90524, 1, 1, 1, 1.4, 1, 0, 0, 0, -0.0373457, -0.127495, -0.278975, 0.951064, 1, 1, 1, 1.46667, 1, 0, 0, 0, -0.0533918, -0.0436373, -0.0988712, 0.992708, 1, 1, 1, 1.53333, 1, 0, 0, 0, -0.0694614, 0.0575676, 0.118765, 0.988815, 1, 1, 1, 1.6, 1, 0, 0, 0, -0.0799452, 0.140794, 0.297969, 0.940745, 1, 1, 1, 1.66667, 1, 0, 0, 0, -0.0848047, 0.189695, 0.40337, 0.891132, 1, 1, 1, 1.73333, 1, 0, 0, 0, -0.0567956, -0.0239432, -0.056543, 0.996496, 1, 1, 1, 1.8, 1, 0, 0, 0, -0.0276404, -0.172351, -0.37522, 0.910352, 1, 1, 1, 3.20833, 1, 0, 0, 0, -0.0276405, -0.172351, -0.37522, 0.910352, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Take_Damage/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 0, 1, 0, 0, 0, 4.16334e-17, 5.58794e-09, 3.72529e-09, 1, 1, 1, 1, 3.20833, 1, 0, 0, 0, 8.32667e-17, 1.11759e-08, 0, 1, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Take_Damage/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 0, 1, 0, 0, 0, 0, 0, -1.07621e-16, 1, 1, 1, 1, 3.20833, 1, 0, 0, 0, 3.72529e-09, -5.12227e-09, 4.65661e-10, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Take_Damage/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0, 1, 0, 0, 0, -5.20417e-18, -1.86265e-09, -6.51926e-09, 1, 1, 1, 1, 0.0666667, 1, 0, 0, 0, -0.0404042, -1.2525e-09, -0.003839, 0.999176, 1, 1, 1, 0.133333, 1, 0, 0, 0, -0.135896, -6.1108e-09, -0.0129122, 0.990639, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.265606, -4.59017e-09, -0.0252365, 0.963751, 1, 1, 1, 0.266667, 1, 0, 0, 0, -0.393618, -1.01395e-09, -0.0373996, 0.918513, 1, 1, 1, 0.333333, 1, 0, 0, 0, -0.492585, -9.6454e-09, -0.0468029, 0.869005, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.536336, -3.31642e-09, -0.0509599, 0.842465, 1, 1, 1, 0.466667, 1, 0, 0, 0, -0.522548, -2.18835e-09, -0.0496499, 0.851163, 1, 1, 1, 0.533333, 1, 0, 0, 0, -0.455059, -2.09425e-09, -0.0432373, 0.889411, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.353705, -4.48349e-09, -0.0336072, 0.934753, 1, 1, 1, 0.666667, 1, 0, 0, 0, -0.238522, -2.87779e-09, -0.0226631, 0.970873, 1, 1, 1, 0.733333, 1, 0, 0, 0, -0.129283, 7.04458e-10, -0.0122838, 0.991532, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.0373372, -1.22322e-09, -0.00354759, 0.999296, 1, 1, 1, 0.866667, 1, 0, 0, 0, 0.0309086, 0.0683938, -0.325303, 0.942627, 1, 1, 1, 0.933333, 1, 0, 0, 0, 0.0202887, 0.0798475, -0.367576, 0.926337, 1, 1, 1, 1, 1, 0, 0, 0, -0.00208559, 0.0512603, -0.224301, 0.973169, 1, 1, 1, 1.06667, 1, 0, 0, 0, -0.0249608, -0.00250707, 0.0303337, 0.999225, 1, 1, 1, 1.13333, 1, 0, 0, 0, -0.0421263, -0.0589742, 0.292455, 0.953529, 1, 1, 1, 1.2, 1, 0, 0, 0, -0.0505404, -0.0983799, 0.472624, 0.874296, 1, 1, 1, 1.26667, 1, 0, 0, 0, -0.0531475, -0.115818, 0.551489, 0.824392, 1, 1, 1, 1.33333, 1, 0, 0, 0, -0.0515539, -0.114077, 0.542586, 0.83062, 1, 1, 1, 1.4, 1, 0, 0, 0, -0.0405993, -0.0898371, 0.427294, 0.898722, 1, 1, 1, 1.46667, 1, 0, 0, 0, -0.0210332, -0.0465417, 0.221367, 0.973852, 1, 1, 1, 1.53333, 1, 0, 0, 0, 0.00366496, 0.00810979, -0.0385728, 0.999216, 1, 1, 1, 1.6, 1, 0, 0, 0, 0.0241914, 0.0535301, -0.254606, 0.965259, 1, 1, 1, 1.66667, 1, 0, 0, 0, 0.0361378, 0.0799649, -0.380339, 0.920675, 1, 1, 1, 1.73333, 1, 0, 0, 0, 0.0382142, 0.0845595, -0.402192, 0.910841, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0382143, 0.0845595, -0.402192, 0.910841, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Take_Damage/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 0, 1, 0, 0, 0, 1.49012e-08, 1.86265e-09, -2.77556e-17, 1, 1, 1, 1, 3.20833, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, 3.72529e-09, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Take_Damage/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 0, 1, 0, 0, 0, 7.67833e-25, -5.68434e-14, 5.21805e-13, 1, 1, 1, 1, 1.93333, 1, 0, 0, 0, 7.67833e-25, -5.68434e-14, 5.21805e-13, 1, 1, 1, 1, 2, 1, 0, 0, 0, -0.00566749, -0.00125863, 0.0220859, 0.999739, 1, 1, 1, 2.06667, 1, 0, 0, 0, -0.034795, -0.00772722, 0.135594, 0.990123, 1, 1, 1, 2.13333, 1, 0, 0, 0, -0.0775658, -0.0172257, 0.30227, 0.949905, 1, 1, 1, 2.2, 1, 0, 0, 0, -0.12559, -0.0278908, 0.489417, 0.862508, 1, 1, 1, 2.26667, 1, 0, 0, 0, -0.17077, -0.0379243, 0.665482, 0.725626, 1, 1, 1, 2.33333, 1, 0, 0, 0, -0.207256, -0.0460271, 0.807667, 0.550091, 1, 1, 1, 2.4, 1, 0, 0, 0, -0.23185, -0.0514888, 0.903507, 0.35675, 1, 1, 1, 2.46667, 1, 0, 0, 0, -0.2451, -0.0544315, 0.955142, 0.157054, 1, 1, 1, 2.53333, 1, 0, 0, 0, -0.247881, -0.0550491, 0.96598, -0.0490584, 1, 1, 1, 2.6, 1, 0, 0, 0, -0.240265, -0.0533576, 0.936298, -0.250542, 1, 1, 1, 2.66667, 1, 0, 0, 0, -0.223703, -0.0496795, 0.871757, -0.433045, 1, 1, 1, 2.73333, 1, 0, 0, 0, 0.200733, 0.0445786, -0.782248, 0.588054, 1, 1, 1, 2.8, 1, 0, 0, 0, 0.172754, 0.038365, -0.673214, 0.71796, 1, 1, 1, 2.86667, 1, 0, 0, 0, 0.140459, 0.031193, -0.547361, 0.824435, 1, 1, 1, 2.93333, 1, 0, 0, 0, 0.105191, 0.0233608, -0.409925, 0.905732, 1, 1, 1, 3, 1, 0, 0, 0, 0.0697159, 0.0154824, -0.271679, 0.959734, 1, 1, 1, 3.06667, 1, 0, 0, 0, 0.0391792, 0.00870091, -0.15268, 0.98746, 1, 1, 1, 3.13333, 1, 0, 0, 0, 0.0169803, 0.00377101, -0.0661717, 0.997657, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.00688171, 0.00152832, -0.0268179, 0.999615, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Take_Damage/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0, 1, 0, 0, 0, 0, -9.31323e-10, 2.32831e-09, 1, 1, 1, 1, 0.8, 1, 0, 0, 0, 0, -9.31323e-10, 2.32831e-09, 1, 1, 1, 1, 0.866667, 1, 0, 0, 0, -0.00730007, -0.00350666, -0.282543, 0.95922, 1, 1, 1, 0.933333, 1, 0, 0, 0, -0.00808257, -0.00388249, -0.312826, 0.949768, 1, 1, 1, 1, 1, 0, 0, 0, -0.00485649, -0.00233285, -0.187967, 0.982161, 1, 1, 1, 1.06667, 1, 0, 0, 0, 0.000397696, 0.000190981, 0.0153874, 0.999882, 1, 1, 1, 1.13333, 1, 0, 0, 0, 0.00588604, 0.0028273, 0.227805, 0.973685, 1, 1, 1, 1.2, 1, 0, 0, 0, 0.0100188, 0.00481245, 0.387758, 0.921694, 1, 1, 1, 1.26667, 1, 0, 0, 0, 0.0119985, 0.00576343, 0.464382, 0.885535, 1, 1, 1, 1.33333, 1, 0, 0, 0, 0.0117934, 0.00566492, 0.456444, 0.889656, 1, 1, 1, 1.4, 1, 0, 0, 0, 0.00906538, 0.00435453, 0.350857, 0.936375, 1, 1, 1, 1.46667, 1, 0, 0, 0, 0.00451482, 0.00216868, 0.174737, 0.984603, 1, 1, 1, 1.53333, 1, 0, 0, 0, -0.000991553, -0.000476343, -0.0383811, 0.999263, 1, 1, 1, 1.6, 1, 0, 0, 0, -0.00566975, -0.00272349, -0.219443, 0.975605, 1, 1, 1, 1.66667, 1, 0, 0, 0, -0.00853729, -0.00410095, -0.330428, 0.943784, 1, 1, 1, 1.73333, 1, 0, 0, 0, 0.00214547, 0.00103055, 0.0830343, 0.996544, 1, 1, 1, 1.8, 1, 0, 0, 0, 0.00951767, 0.00457181, 0.368364, 0.929622, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.00951765, 0.00457177, 0.368364, 0.929622, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 0, 1, 0, 0, 0, -1.49012e-08, 9.31323e-10, 0, 1, 1, 1, 1, 1.93333, 1, 0, 0, 0, -1.49012e-08, 9.31323e-10, 0, 1, 1, 1, 1, 2, 1, 0, 0, 0, 0.00624428, 0.0179331, 0.0126848, 0.999739, 1, 1, 1, 2.06667, 1, 0, 0, 0, 0.038336, 0.110099, 0.0778772, 0.990123, 1, 1, 1, 2.13333, 1, 0, 0, 0, 0.0854592, 0.245434, 0.173606, 0.949905, 1, 1, 1, 2.2, 1, 0, 0, 0, 0.13837, 0.397392, 0.281092, 0.862508, 1, 1, 1, 2.26667, 1, 0, 0, 0, 0.188148, 0.540352, 0.382213, 0.725626, 1, 1, 1, 2.33333, 1, 0, 0, 0, 0.228348, 0.655802, 0.463875, 0.550091, 1, 1, 1, 2.4, 1, 0, 0, 0, 0.255444, 0.733621, 0.51892, 0.35675, 1, 1, 1, 2.46667, 1, 0, 0, 0, 0.270043, 0.775548, 0.548576, 0.157054, 1, 1, 1, 2.53333, 1, 0, 0, 0, 0.273107, 0.784348, 0.554801, -0.0490583, 1, 1, 1, 2.6, 1, 0, 0, 0, 0.264715, 0.760247, 0.537753, -0.250542, 1, 1, 1, 2.66667, 1, 0, 0, 0, 0.246468, 0.707842, 0.500685, -0.433045, 1, 1, 1, 2.73333, 1, 0, 0, 0, -0.221161, -0.635163, -0.449276, 0.588054, 1, 1, 1, 2.8, 1, 0, 0, 0, -0.190335, -0.546631, -0.386654, 0.71796, 1, 1, 1, 2.86667, 1, 0, 0, 0, -0.154753, -0.444442, -0.314371, 0.824435, 1, 1, 1, 2.93333, 1, 0, 0, 0, -0.115896, -0.332848, -0.235436, 0.905732, 1, 1, 1, 3, 1, 0, 0, 0, -0.0768107, -0.220596, -0.156036, 0.959735, 1, 1, 1, 3.06667, 1, 0, 0, 0, -0.0431664, -0.123972, -0.08769, 0.987461, 1, 1, 1, 3.13333, 1, 0, 0, 0, -0.0187084, -0.0537296, -0.038005, 0.997657, 1, 1, 1, 3.20833, 1, 0, 0, 0, -0.00758208, -0.0217755, -0.0154026, 0.999615, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Take_Damage/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0, 1, 0, 0, 0, -1.49012e-08, 4.65661e-10, 3.25963e-09, 1, 1, 1, 1, 0.8, 1, 0, 0, 0, -1.49012e-08, 4.65661e-10, 3.25963e-09, 1, 1, 1, 1, 0.866667, 1, 0, 0, 0, 0.026062, -0.00413051, -0.320894, 0.946748, 1, 1, 1, 0.933333, 1, 0, 0, 0, 0.0289689, -0.00459123, -0.356686, 0.933764, 1, 1, 1, 1, 1, 0, 0, 0, 0.0193686, -0.00306966, -0.23848, 0.970949, 1, 1, 1, 1.06667, 1, 0, 0, 0, 0.00407464, -0.000645792, -0.0501699, 0.998732, 1, 1, 1, 1.13333, 1, 0, 0, 0, -0.0122572, 0.00194258, 0.15092, 0.988468, 1, 1, 1, 1.2, 1, 0, 0, 0, -0.0250891, 0.00397626, 0.308915, 0.95075, 1, 1, 1, 1.26667, 1, 0, 0, 0, -0.0314637, 0.00498659, 0.387405, 0.921359, 1, 1, 1, 1.33333, 1, 0, 0, 0, -0.0308454, 0.00488856, 0.379792, 0.924545, 1, 1, 1, 1.4, 1, 0, 0, 0, -0.0223122, 0.00353617, 0.274725, 0.961258, 1, 1, 1, 1.46667, 1, 0, 0, 0, -0.00836158, 0.00132518, 0.102955, 0.99465, 1, 1, 1, 1.53333, 1, 0, 0, 0, 0.0082114, -0.00130142, -0.101104, 0.994841, 1, 1, 1, 1.6, 1, 0, 0, 0, 0.022167, -0.00351321, -0.272935, 0.961771, 1, 1, 1, 1.66667, 1, 0, 0, 0, 0.0307057, -0.00486646, -0.37807, 0.925255, 1, 1, 1, 1.73333, 1, 0, 0, 0, 0.0322479, -0.00511087, -0.397059, 0.917212, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0322479, -0.00511086, -0.397059, 0.917212, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 0, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, -1.86265e-09, 1, 1, 1, 1, 1.93333, 1, 0, 0, 0, 5.96047e-08, -3.72529e-09, 2.22045e-16, 1, 1, 1, 1, 2, 1, 0, 0, 0, -0.00474105, -0.0166386, -0.0149054, 0.999739, 1, 1, 1, 2.06667, 1, 0, 0, 0, -0.0291069, -0.102151, -0.0915102, 0.990123, 1, 1, 1, 2.13333, 1, 0, 0, 0, -0.0648858, -0.227718, -0.203997, 0.949905, 1, 1, 1, 2.2, 1, 0, 0, 0, -0.105059, -0.368707, -0.330299, 0.862508, 1, 1, 1, 2.26667, 1, 0, 0, 0, -0.142854, -0.501347, -0.449122, 0.725626, 1, 1, 1, 2.33333, 1, 0, 0, 0, -0.173375, -0.608464, -0.54508, 0.550091, 1, 1, 1, 2.4, 1, 0, 0, 0, 0.193949, 0.680665, 0.609761, -0.35675, 1, 1, 1, 2.46667, 1, 0, 0, 0, 0.205033, 0.719566, 0.644609, -0.157054, 1, 1, 1, 2.53333, 1, 0, 0, 0, 0.207359, 0.727731, 0.651923, 0.0490585, 1, 1, 1, 2.6, 1, 0, 0, 0, 0.200988, 0.705369, 0.631891, 0.250543, 1, 1, 1, 2.66667, 1, 0, 0, 0, 0.187133, 0.656747, 0.588334, 0.433045, 1, 1, 1, 2.73333, 1, 0, 0, 0, 0.167919, 0.589314, 0.527925, 0.588054, 1, 1, 1, 2.8, 1, 0, 0, 0, 0.144514, 0.507172, 0.45434, 0.71796, 1, 1, 1, 2.86667, 1, 0, 0, 0, 0.117498, 0.41236, 0.369405, 0.824435, 1, 1, 1, 2.93333, 1, 0, 0, 0, 0.0879955, 0.308821, 0.276651, 0.905732, 1, 1, 1, 3, 1, 0, 0, 0, 0.0583193, 0.204672, 0.183352, 0.959734, 1, 1, 1, 3.06667, 1, 0, 0, 0, 0.0327746, 0.115023, 0.103041, 0.98746, 1, 1, 1, 3.13333, 1, 0, 0, 0, 0.0142047, 0.0498511, 0.0446581, 0.997657, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.00575685, 0.0202035, 0.0180989, 0.999615, 1, 1, 1 )
+
+[sub_resource type="Animation" id=23]
+resource_name = "DJ"
+length = 0.2
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Armature/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0, 1, 0, 0, 0, -8.74663e-06, 0.00186454, -0.272511, 0.962151, 1, 1, 1, 0.1, 1, 0, 0, 0, -9.37256e-06, 0.00199788, -0.291999, 0.956417, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Armature/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -3.19118e-19, -3.24508e-09, -6.46878e-11, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Armature/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0, 1, 0, 0, 0, -0.0735466, 0.459408, 0.836868, 0.288422, 1, 1, 1, 0.1, 1, 0, 0, 0, -0.0651795, 0.472702, 0.872726, 0.10322, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Armature/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 0, 1, 0, 0, 0, 0.0100203, -0.102998, -0.0759856, 0.991724, 1, 1, 1, 0.1, 1, 0, 0, 0, 0.0117468, -0.120745, -0.0890787, 0.988609, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Armature/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0, 0, -1.07621e-16, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Armature/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0, 1, 0, 0, 0, 0.00574604, 0.0127148, -0.0604755, 0.998072, 1, 1, 1, 0.1, 1, 0, 0, 0, -5.20417e-18, -1.86265e-09, -6.51926e-09, 1, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Armature/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 1.49012e-08, 1.86265e-09, -2.77556e-17, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Armature/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 0, 1, 0, 0, 0, -0.00023414, -5.1999e-05, 0.000912437, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, 7.67833e-25, -5.68434e-14, 5.21805e-13, 1, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Armature/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0, 1, 0, 0, 0, -0.0141936, -0.00681793, -0.549346, 0.835447, 1, 1, 1, 0.1, 1, 0, 0, 0, -0.0172016, -0.00826282, -0.665766, 0.745916, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Armature/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 0, 1, 0, 0, 0, 0.000257909, 0.000740879, 0.000524048, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, -1.49012e-08, 9.31323e-10, 0, 1, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Armature/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0, 1, 0, 0, 0, 0.0522014, -0.00827325, -0.642741, 0.764258, 1, 1, 1, 0.1, 1, 0, 0, 0, 0.0552322, -0.00875362, -0.680058, 0.731023, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Armature/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 0, 1, 0, 0, 0, -0.000195807, -0.000687398, -0.000615789, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, -1.86265e-09, 1, 1, 1, 1 )
+
+[sub_resource type="Animation" id=14]
+resource_name = "Idle"
+length = 0.8
+loop = true
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Take_Damage/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0, 1, 0, 0, 0, 2.16212e-19, 4.36557e-11, 4.09273e-10, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, -7.02677e-07, 0.000149951, -0.0219161, 0.99976, 1, 1, 1, 0.2, 1, 0, 0, 0, -2.33443e-06, 0.000497874, -0.0727665, 0.997349, 1, 1, 1, 0.3, 1, 0, 0, 0, -6.75054e-06, 0.00143904, -0.210322, 0.977631, 1, 1, 1, 0.4, 1, 0, 0, 0, -8.567e-06, 0.00182622, -0.26691, 0.96372, 1, 1, 1, 0.5, 1, 0, 0, 0, -9.12721e-06, 0.0019455, -0.284343, 0.958721, 1, 1, 1, 0.6, 1, 0, 0, 0, -7.73189e-06, 0.00164819, -0.240891, 0.970551, 1, 1, 1, 0.7, 1, 0, 0, 0, -3.38654e-06, 0.000721878, -0.105506, 0.994418, 1, 1, 1, 0.8, 1, 0, 0, 0, -1.42481e-06, 0.000303938, -0.0444219, 0.999013, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Take_Damage/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 0, 1, 0, 0, 0, 4.65661e-10, 1.08526e-20, 2.33058e-11, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Take_Damage/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0, 1, 0, 0, 0, -8.9407e-08, -1.86264e-09, -7.45058e-09, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, 0.032505, -0.000104823, 0.00248442, 0.999469, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.108596, -0.000350202, 0.00830015, 0.994051, 1, 1, 1, 0.3, 1, 0, 0, 0, 0.314197, -0.00101323, 0.0240146, 0.949054, 1, 1, 1, 0.4, 1, 0, 0, 0, 0.39607, -0.00127726, 0.0302723, 0.91772, 1, 1, 1, 0.5, 1, 0, 0, 0, 0.422827, -0.00133595, 0.0321694, 0.905638, 1, 1, 1, 0.6, 1, 0, 0, 0, 0.369255, -0.001076, 0.0276069, 0.928917, 1, 1, 1, 0.7, 1, 0, 0, 0, 0.195334, -0.000344108, 0.0133962, 0.980645, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Take_Damage/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 0, 1, 0, 0, 0, 4.16334e-17, 5.58794e-09, 3.72529e-09, 1, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Take_Damage/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 0, 1, 0, 0, 0, 0, 0, -1.07621e-16, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Take_Damage/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0, 1, 0, 0, 0, -5.20417e-18, -1.86265e-09, -6.51926e-09, 1, 1, 1, 1, 0.1, 1, 0, 0, 0, -0.0404042, -1.2525e-09, -0.003839, 0.999176, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.135896, -6.1108e-09, -0.0129122, 0.990639, 1, 1, 1, 0.3, 1, 0, 0, 0, -0.393618, -1.01395e-09, -0.0373996, 0.918513, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.492585, -9.6454e-09, -0.0468029, 0.869005, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.522548, -2.18835e-09, -0.0496499, 0.851163, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.455059, -2.09425e-09, -0.0432373, 0.889411, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.238522, -2.87779e-09, -0.0226631, 0.970873, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.129283, 7.04458e-10, -0.0122838, 0.991532, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Take_Damage/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 0, 1, 0, 0, 0, 1.49012e-08, 1.86265e-09, -2.77556e-17, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Take_Damage/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 0, 1, 0, 0, 0, 7.67833e-25, -5.68434e-14, 5.21805e-13, 1, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Take_Damage/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0, 1, 0, 0, 0, 0, -9.31323e-10, 2.32831e-09, 1, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 0, 1, 0, 0, 0, -1.49012e-08, 9.31323e-10, 0, 1, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Take_Damage/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0, 1, 0, 0, 0, -1.49012e-08, 4.65661e-10, 3.25963e-09, 1, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 0, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, -1.86265e-09, 1, 1, 1, 1 )
+
+[sub_resource type="Animation" id=6]
+resource_name = "Jump"
+length = 0.2
+loop = true
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Take_Damage/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0, 1, 0, 0, 0, -5.08082e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1, 0.1, 1, 0, 0, 0, -5.08087e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Take_Damage/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -3.72529e-09, 4.2055e-09, -7.50572e-09, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Take_Damage/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0, 1, 0, 0, 0, -0.0276404, -0.172351, -0.37522, 0.910352, 1, 1, 1, 0.1, 1, 0, 0, 0, -0.0276405, -0.172351, -0.37522, 0.910352, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Take_Damage/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 8.32667e-17, 1.11759e-08, 0, 1, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Take_Damage/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 3.72529e-09, -5.12227e-09, 4.65661e-10, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Take_Damage/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.0382143, 0.0845595, -0.402192, 0.910841, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Take_Damage/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, 3.72529e-09, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Take_Damage/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.00688171, 0.00152832, -0.0268179, 0.999615, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Take_Damage/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0, 1, 0, 0, 0, 0.00951767, 0.00457181, 0.368364, 0.929622, 1, 1, 1, 0.1, 1, 0, 0, 0, 0.00951765, 0.00457177, 0.368364, 0.929622, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -0.00758208, -0.0217755, -0.0154026, 0.999615, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Take_Damage/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.0322479, -0.00511086, -0.397059, 0.917212, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.00575685, 0.0202035, 0.0180989, 0.999615, 1, 1, 1 )
+
+[sub_resource type="Animation" id=24]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 1, 1, 1 ) ]
+}
+
+[sub_resource type="Animation" id=7]
+resource_name = "Walk"
+length = 0.9
+loop = true
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Take_Damage/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -7.64052e-07, 0.000163172, -0.0238483, 0.999716, 1, 1, 1, 0.2, 1, 0, 0, 0, -8.68326e-07, 0.00018573, -0.0271453, 0.999632, 1, 1, 1, 0.4, 1, 0, 0, 0, 3.23751e-07, -6.8836e-05, 0.0100607, 0.999949, 1, 1, 1, 0.5, 1, 0, 0, 0, 4.84389e-07, -0.000103051, 0.0150614, 0.999887, 1, 1, 1, 0.6, 1, 0, 0, 0, 5.08211e-07, -0.000108167, 0.0158091, 0.999875, 1, 1, 1, 0.7, 1, 0, 0, 0, 4.63929e-07, -9.8871e-05, 0.0144504, 0.999896, 1, 1, 1, 0.8, 1, 0, 0, 0, 3.93334e-07, -8.38479e-05, 0.0122547, 0.999925, 1, 1, 1, 3.20833, 1, 0, 0, 0, -5.08087e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Take_Damage/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, -3.72529e-09, 4.2055e-09, -7.50572e-09, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Take_Damage/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -0.069458, 0.160998, 0.342557, 0.92299, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.0839134, 0.179857, 0.382157, 0.902533, 1, 1, 1, 0.3, 1, 0, 0, 0, -0.0657882, 0.0323506, 0.0645098, 0.995221, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.049125, -0.0672885, -0.149689, 0.985217, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0257668, -0.180572, -0.392851, 0.901331, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0265695, -0.177066, -0.385334, 0.90524, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.0533918, -0.0436373, -0.0988712, 0.992708, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.0694614, 0.0575676, 0.118765, 0.988815, 1, 1, 1, 3.20833, 1, 0, 0, 0, -0.0276405, -0.172351, -0.37522, 0.910352, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Take_Damage/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 8.32667e-17, 1.11759e-08, 0, 1, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Take_Damage/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 3.72529e-09, -5.12227e-09, 4.65661e-10, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Take_Damage/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.0309086, 0.0683938, -0.325303, 0.942627, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.0202887, 0.0798475, -0.367576, 0.926337, 1, 1, 1, 0.3, 1, 0, 0, 0, -0.0249608, -0.00250707, 0.0303337, 0.999225, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.0421263, -0.0589742, 0.292455, 0.953529, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0531475, -0.115818, 0.551489, 0.824392, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0515539, -0.114077, 0.542586, 0.83062, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.0210332, -0.0465417, 0.221367, 0.973852, 1, 1, 1, 0.8, 1, 0, 0, 0, 0.00366496, 0.00810979, -0.0385728, 0.999216, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0382143, 0.0845595, -0.402192, 0.910841, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Take_Damage/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, 3.72529e-09, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Take_Damage/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 0.00688171, 0.00152832, -0.0268179, 0.999615, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Take_Damage/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -0.00730007, -0.00350666, -0.282543, 0.95922, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.00808257, -0.00388249, -0.312826, 0.949768, 1, 1, 1, 0.3, 1, 0, 0, 0, 0.000397696, 0.000190981, 0.0153874, 0.999882, 1, 1, 1, 0.4, 1, 0, 0, 0, 0.00588604, 0.0028273, 0.227805, 0.973685, 1, 1, 1, 0.5, 1, 0, 0, 0, 0.0119985, 0.00576343, 0.464382, 0.885535, 1, 1, 1, 0.6, 1, 0, 0, 0, 0.0117934, 0.00566492, 0.456444, 0.889656, 1, 1, 1, 0.7, 1, 0, 0, 0, 0.00451482, 0.00216868, 0.174737, 0.984603, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.000991553, -0.000476343, -0.0383811, 0.999263, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.00951765, 0.00457177, 0.368364, 0.929622, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, -0.00758208, -0.0217755, -0.0154026, 0.999615, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Take_Damage/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.026062, -0.00413051, -0.320894, 0.946748, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.0289689, -0.00459123, -0.356686, 0.933764, 1, 1, 1, 0.3, 1, 0, 0, 0, 0.00407464, -0.000645792, -0.0501699, 0.998732, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.0122572, 0.00194258, 0.15092, 0.988468, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0314637, 0.00498659, 0.387405, 0.921359, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0308454, 0.00488856, 0.379792, 0.924545, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.00836158, 0.00132518, 0.102955, 0.99465, 1, 1, 1, 0.8, 1, 0, 0, 0, 0.0082114, -0.00130142, -0.101104, 0.994841, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0322479, -0.00511086, -0.397059, 0.917212, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 0.00575685, 0.0202035, 0.0180989, 0.999615, 1, 1, 1 )
+
+[sub_resource type="Animation" id=34]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath(".:rotation_degrees")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 0, 0, 0 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath(".:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Vector3( 1, 1, 1 ) ]
+}
+
+[sub_resource type="Animation" id=35]
+resource_name = "Run"
+length = 0.9
+loop = true
+tracks/0/type = "transform"
+tracks/0/path = NodePath("Take_Damage/Skeleton:Head")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -7.64052e-07, 0.000163172, -0.0238483, 0.999716, 1, 1, 1, 0.2, 1, 0, 0, 0, -8.68326e-07, 0.00018573, -0.0271453, 0.999632, 1, 1, 1, 0.4, 1, 0, 0, 0, 3.23751e-07, -6.8836e-05, 0.0100607, 0.999949, 1, 1, 1, 0.5, 1, 0, 0, 0, 4.84389e-07, -0.000103051, 0.0150614, 0.999887, 1, 1, 1, 0.6, 1, 0, 0, 0, 5.08211e-07, -0.000108167, 0.0158091, 0.999875, 1, 1, 1, 0.7, 1, 0, 0, 0, 4.63929e-07, -9.8871e-05, 0.0144504, 0.999896, 1, 1, 1, 0.8, 1, 0, 0, 0, 3.93334e-07, -8.38479e-05, 0.0122547, 0.999925, 1, 1, 1, 3.20833, 1, 0, 0, 0, -5.08087e-06, 0.00108321, -0.158316, 0.987388, 1, 1, 1 )
+tracks/1/type = "transform"
+tracks/1/path = NodePath("Take_Damage/Skeleton:Forearm.Right")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, -3.72529e-09, 4.2055e-09, -7.50572e-09, 1, 1, 1, 1 )
+tracks/2/type = "transform"
+tracks/2/path = NodePath("Take_Damage/Skeleton:Arm.Right")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -0.069458, 0.160998, 0.342557, 0.92299, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.0839134, 0.179857, 0.382157, 0.902533, 1, 1, 1, 0.3, 1, 0, 0, 0, -0.0657882, 0.0323506, 0.0645098, 0.995221, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.049125, -0.0672885, -0.149689, 0.985217, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0257668, -0.180572, -0.392851, 0.901331, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0265695, -0.177066, -0.385334, 0.90524, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.0533918, -0.0436373, -0.0988712, 0.992708, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.0694614, 0.0575676, 0.118765, 0.988815, 1, 1, 1, 3.20833, 1, 0, 0, 0, -0.0276405, -0.172351, -0.37522, 0.910352, 1, 1, 1 )
+tracks/3/type = "transform"
+tracks/3/path = NodePath("Take_Damage/Skeleton:Shoulder.Right")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 8.32667e-17, 1.11759e-08, 0, 1, 1, 1, 1 )
+tracks/4/type = "transform"
+tracks/4/path = NodePath("Take_Damage/Skeleton:Forearm.Left")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 3.72529e-09, -5.12227e-09, 4.65661e-10, 1, 1, 1, 1 )
+tracks/5/type = "transform"
+tracks/5/path = NodePath("Take_Damage/Skeleton:Arm.Left")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.0309086, 0.0683938, -0.325303, 0.942627, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.0202887, 0.0798475, -0.367576, 0.926337, 1, 1, 1, 0.3, 1, 0, 0, 0, -0.0249608, -0.00250707, 0.0303337, 0.999225, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.0421263, -0.0589742, 0.292455, 0.953529, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0531475, -0.115818, 0.551489, 0.824392, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0515539, -0.114077, 0.542586, 0.83062, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.0210332, -0.0465417, 0.221367, 0.973852, 1, 1, 1, 0.8, 1, 0, 0, 0, 0.00366496, 0.00810979, -0.0385728, 0.999216, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0382143, 0.0845595, -0.402192, 0.910841, 1, 1, 1 )
+tracks/6/type = "transform"
+tracks/6/path = NodePath("Take_Damage/Skeleton:Shoulder.Left")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 1.49012e-08, -1.86265e-09, 3.72529e-09, 1, 1, 1, 1 )
+tracks/7/type = "transform"
+tracks/7/path = NodePath("Take_Damage/Skeleton:Body")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 0.00688171, 0.00152832, -0.0268179, 0.999615, 1, 1, 1 )
+tracks/8/type = "transform"
+tracks/8/path = NodePath("Take_Damage/Skeleton:Leg.Left")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = PoolRealArray( 0.1, 1, 0, 0, 0, -0.00730007, -0.00350666, -0.282543, 0.95922, 1, 1, 1, 0.2, 1, 0, 0, 0, -0.00808257, -0.00388249, -0.312826, 0.949768, 1, 1, 1, 0.3, 1, 0, 0, 0, 0.000397696, 0.000190981, 0.0153874, 0.999882, 1, 1, 1, 0.4, 1, 0, 0, 0, 0.00588604, 0.0028273, 0.227805, 0.973685, 1, 1, 1, 0.5, 1, 0, 0, 0, 0.0119985, 0.00576343, 0.464382, 0.885535, 1, 1, 1, 0.6, 1, 0, 0, 0, 0.0117934, 0.00566492, 0.456444, 0.889656, 1, 1, 1, 0.7, 1, 0, 0, 0, 0.00451482, 0.00216868, 0.174737, 0.984603, 1, 1, 1, 0.8, 1, 0, 0, 0, -0.000991553, -0.000476343, -0.0383811, 0.999263, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.00951765, 0.00457177, 0.368364, 0.929622, 1, 1, 1 )
+tracks/9/type = "transform"
+tracks/9/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Left")
+tracks/9/interp = 1
+tracks/9/loop_wrap = true
+tracks/9/imported = false
+tracks/9/enabled = true
+tracks/9/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, -0.00758208, -0.0217755, -0.0154026, 0.999615, 1, 1, 1 )
+tracks/10/type = "transform"
+tracks/10/path = NodePath("Take_Damage/Skeleton:Leg.Right")
+tracks/10/interp = 1
+tracks/10/loop_wrap = true
+tracks/10/imported = false
+tracks/10/enabled = true
+tracks/10/keys = PoolRealArray( 0.1, 1, 0, 0, 0, 0.026062, -0.00413051, -0.320894, 0.946748, 1, 1, 1, 0.2, 1, 0, 0, 0, 0.0289689, -0.00459123, -0.356686, 0.933764, 1, 1, 1, 0.3, 1, 0, 0, 0, 0.00407464, -0.000645792, -0.0501699, 0.998732, 1, 1, 1, 0.4, 1, 0, 0, 0, -0.0122572, 0.00194258, 0.15092, 0.988468, 1, 1, 1, 0.5, 1, 0, 0, 0, -0.0314637, 0.00498659, 0.387405, 0.921359, 1, 1, 1, 0.6, 1, 0, 0, 0, -0.0308454, 0.00488856, 0.379792, 0.924545, 1, 1, 1, 0.7, 1, 0, 0, 0, -0.00836158, 0.00132518, 0.102955, 0.99465, 1, 1, 1, 0.8, 1, 0, 0, 0, 0.0082114, -0.00130142, -0.101104, 0.994841, 1, 1, 1, 3.20833, 1, 0, 0, 0, 0.0322479, -0.00511086, -0.397059, 0.917212, 1, 1, 1 )
+tracks/11/type = "transform"
+tracks/11/path = NodePath("Take_Damage/Skeleton:Leg.Joint.Right")
+tracks/11/interp = 1
+tracks/11/loop_wrap = true
+tracks/11/imported = false
+tracks/11/enabled = true
+tracks/11/keys = PoolRealArray( 3.20833, 1, 0, 0, 0, 0.00575685, 0.0202035, 0.0180989, 0.999615, 1, 1, 1 )
+
+[sub_resource type="BoxShape" id=8]
+extents = Vector3( 0.429541, 1.36796, 0.477268 )
+
+[sub_resource type="BoxShape" id=10]
+extents = Vector3( 0.41761, 0.393746, 0.328122 )
+
+[node name="Main_Stage_01" type="Node"]
+script = SubResource( 2 )
+
+[node name="Land" type="Spatial" parent="."]
+
+[node name="Scenes" parent="Land" instance=ExtResource( 1 )]
+
+[node name="Platform_Fall" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 52.141, 0.311831, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall"]
+playback_speed = 3.0
+anims/RESET = SubResource( 25 )
+anims/Shake = SubResource( 26 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall"]
+one_shot = true
+
+[node name="Platform_Fall6" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 84.9736, 6.77506, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall6"]
+playback_speed = 3.0
+anims/RESET = SubResource( 39 )
+anims/Shake = SubResource( 40 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall6"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall6"]
+one_shot = true
+
+[node name="Platform_Fall7" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 79.142, 8.62129, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall7"]
+playback_speed = 3.0
+anims/RESET = SubResource( 41 )
+anims/Shake = SubResource( 42 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall7"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall7"]
+one_shot = true
+
+[node name="Platform_Fall8" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 73.7912, 10.8277, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall8"]
+playback_speed = 3.0
+anims/RESET = SubResource( 43 )
+anims/Shake = SubResource( 44 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall8"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall8"]
+one_shot = true
+
+[node name="Platform_Fall9" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 68.8439, 13.3044, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall9"]
+playback_speed = 3.0
+anims/RESET = SubResource( 45 )
+anims/Shake = SubResource( 46 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall9"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall9"]
+one_shot = true
+
+[node name="Platform_Fall2" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 46.2042, 0.311831, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall2"]
+playback_speed = 3.0
+anims/RESET = SubResource( 28 )
+anims/Shake = SubResource( 29 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall2"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall2"]
+one_shot = true
+
+[node name="Platform_Fall3" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 40.2266, 0.311831, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall3"]
+playback_speed = 3.0
+anims/RESET = SubResource( 30 )
+anims/Shake = SubResource( 31 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall3"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall3"]
+one_shot = true
+
+[node name="Platform_Fall4" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 34.0185, 0.311831, -0.0237503 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall4"]
+playback_speed = 3.0
+anims/RESET = SubResource( 32 )
+anims/Shake = SubResource( 33 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall4"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall4"]
+one_shot = true
+
+[node name="Platform_Fall5" parent="Land" instance=ExtResource( 10 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 196.824, 1.791, -0.024 )
+script = SubResource( 27 )
+
+[node name="Anim" type="AnimationPlayer" parent="Land/Platform_Fall5"]
+playback_speed = 3.0
+anims/RESET = SubResource( 36 )
+anims/Shake = SubResource( 37 )
+
+[node name="Fall" type="Timer" parent="Land/Platform_Fall5"]
+one_shot = true
+
+[node name="Respawn" type="Timer" parent="Land/Platform_Fall5"]
+one_shot = true
+
+[node name="Enemys" type="Spatial" parent="."]
+
+[node name="Enemy" parent="Enemys" instance=ExtResource( 2 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 202.669, 1.842, -0.0398142 )
+
+[node name="Enemy2" parent="Enemys" instance=ExtResource( 4 )]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 182.79, 0.374433, -0.777806 )
+
+[node name="Crystal" type="Spatial" parent="."]
+
+[node name="HUD" type="Node2D" parent="."]
+
+[node name="HUD_BACKGROUND" type="Sprite" parent="HUD"]
+position = Vector2( 183, 119 )
+texture = ExtResource( 13 )
+
+[node name="Heat 01" type="Sprite" parent="HUD"]
+position = Vector2( 159, 114 )
+texture = ExtResource( 12 )
+
+[node name="Heat 02" type="Sprite" parent="HUD"]
+position = Vector2( 209, 114 )
+texture = ExtResource( 12 )
+
+[node name="Heat 03" type="Sprite" parent="HUD"]
+position = Vector2( 259, 114 )
+texture = ExtResource( 12 )
+
+[node name="Crystal 01" type="Sprite" parent="HUD"]
+visible = false
+position = Vector2( 163, 154 )
+texture = ExtResource( 11 )
+
+[node name="Crystal 02" type="Sprite" parent="HUD"]
+visible = false
+position = Vector2( 175, 154 )
+texture = ExtResource( 11 )
+
+[node name="Crystal 03" type="Sprite" parent="HUD"]
+visible = false
+position = Vector2( 187, 154 )
+texture = ExtResource( 11 )
+
+[node name="Crystal 04" type="Sprite" parent="HUD"]
+visible = false
+position = Vector2( 199, 154 )
+texture = ExtResource( 11 )
+
+[node name="GameOver" type="Node2D" parent="."]
+
+[node name="Label" type="Label" parent="GameOver"]
+margin_left = 582.0
+margin_top = 460.0
+margin_right = 1409.0
+margin_bottom = 631.0
+rect_scale = Vector2( 1e-05, 1e-05 )
+rect_pivot_offset = Vector2( 410, 90 )
+custom_fonts/font = SubResource( 47 )
+text = "Game Over"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Anim" type="AnimationPlayer" parent="GameOver"]
+anims/GameOver = SubResource( 48 )
+anims/RESET = SubResource( 49 )
+
+[node name="Finish" type="Node2D" parent="."]
+
+[node name="Label" type="Label" parent="Finish"]
+margin_left = 152.0
+margin_top = 460.0
+margin_right = 1738.0
+margin_bottom = 631.0
+rect_scale = Vector2( 1e-05, 1e-05 )
+rect_pivot_offset = Vector2( 790, 90 )
+custom_colors/font_color = Color( 0.270588, 1, 0.423529, 1 )
+custom_fonts/font = SubResource( 47 )
+text = "Congratulations!!!"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Finish"]
+anims/Congratulations = SubResource( 50 )
+
+[node name="Songs" type="Node" parent="."]
+
+[node name="Cam" type="Spatial" parent="."]
+
+[node name="Camera" type="InterpolatedCamera" parent="Cam"]
+transform = Transform( -2, 0, -1.74846e-07, 0, 2, 0, 1.74846e-07, 0, -2, 218.535, 7.5, -21 )
+environment = SubResource( 5 )
+doppler_tracking = 2
+current = true
+enabled = true
+script = SubResource( 15 )
+
+[node name="Sprite3D" type="Sprite3D" parent="Cam/Camera"]
+transform = Transform( 4, 0, 0, 0, 4, 0, 0, 0, 1, -0.309448, -0.385181, -59.6279 )
+texture = ExtResource( 14 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( -0.208077, -0.974389, -0.0852604, -0.000512518, -0.0870596, 0.996203, -0.978112, 0.207331, 0.0176157, 142.447, 92.313, 0 )
+portal_mode = 3
+autoplace_priority = 1
+light_energy = 1.028
+light_indirect_energy = 7.575
+light_specular = 1.028
+shadow_enabled = true
+
+[node name="Character" type="KinematicBody" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 218.716, 2.81973, 0 )
+script = SubResource( 3 )
+
+[node name="Take_Damage" type="Area" parent="Character"]
+
+[node name="Skeleton" type="Skeleton" parent="Character/Take_Damage"]
+bones/0/name = "Body"
+bones/0/parent = -1
+bones/0/rest = Transform( 1, 0.000339239, -1.27176e-06, -0.000339238, 0.999968, -0.00802472, -1.45058e-06, 0.00802472, 0.999968, 0.0190012, -0.989874, -0.00417318 )
+bones/0/enabled = true
+bones/0/bound_children = [  ]
+bones/1/name = "Head"
+bones/1/parent = 0
+bones/1/rest = Transform( 0.999107, -0.04224, -0.000322541, 0.0422401, 0.998997, 0.0148588, -0.000305416, -0.0148591, 0.99989, 3.09978e-09, 1.26933, -5.21916e-10 )
+bones/1/enabled = true
+bones/1/bound_children = [  ]
+bones/2/name = "Shoulder.Right"
+bones/2/parent = 0
+bones/2/rest = Transform( 0.994599, 0.0219194, 0.10145, -0.067787, -0.602997, 0.794859, 0.0785967, -0.797442, -0.598254, -2.00225e-10, 1.26933, 8.05572e-09 )
+bones/2/enabled = true
+bones/2/bound_children = [  ]
+bones/3/name = "Arm.Right"
+bones/3/parent = 2
+bones/3/rest = Transform( 0.999477, 0.0202023, -0.0252497, -0.00762885, 0.906101, 0.422994, 0.0314243, -0.42258, 0.905781, -4.03484e-09, 0.239198, 5.2225e-09 )
+bones/3/enabled = true
+bones/3/bound_children = [  ]
+bones/4/name = "Forearm.Right"
+bones/4/parent = 3
+bones/4/rest = Transform( 0.999999, 0.00108675, 0.000300936, -0.00108947, 0.999957, 0.00918697, -0.000290939, -0.00918729, 0.999958, 1.43385e-09, 0.397267, 2.51899e-09 )
+bones/4/enabled = true
+bones/4/bound_children = [  ]
+bones/5/name = "Shoulder.Left"
+bones/5/parent = 0
+bones/5/rest = Transform( 0.994552, -0.0215145, 0.101993, 0.0697147, -0.590136, -0.804288, 0.0774933, 0.807017, -0.585421, 0.00519437, 1.26934, 0.00174928 )
+bones/5/enabled = true
+bones/5/bound_children = [  ]
+bones/6/name = "Arm.Left"
+bones/6/parent = 5
+bones/6/rest = Transform( 0.998675, -0.0513055, 0.00400296, 0.041096, 0.748286, -0.662102, 0.0309742, 0.66139, 0.749403, 0, 0.239198, -2.72412e-08 )
+bones/6/enabled = true
+bones/6/bound_children = [  ]
+bones/7/name = "Forearm.Left"
+bones/7/parent = 6
+bones/7/rest = Transform( 1, -3.817e-09, -2.79397e-09, 3.817e-09, 1, -8.19079e-08, 2.79397e-09, 8.19079e-08, 1, -6.55673e-09, 0.396644, -1.01615e-08 )
+bones/7/enabled = true
+bones/7/bound_children = [  ]
+bones/8/name = "Leg.Joint.Left"
+bones/8/parent = -1
+bones/8/rest = Transform( -0.99956, 0.0294324, 0.00360549, -0.0156207, -0.626005, 0.779662, 0.0252044, 0.779263, 0.62619, 0.0190012, -0.989874, -0.00417314 )
+bones/8/enabled = true
+bones/8/bound_children = [  ]
+bones/9/name = "Leg.Left"
+bones/9/parent = 8
+bones/9/rest = Transform( 0.999662, -0.0259866, -0.000291412, 0.0167659, 0.636308, 0.771253, -0.0198568, -0.770997, 0.636529, -3.26397e-09, 0.273309, -6.37657e-09 )
+bones/9/enabled = true
+bones/9/bound_children = [  ]
+bones/10/name = "Leg.Joint.Right"
+bones/10/parent = -1
+bones/10/rest = Transform( 0.999049, 0.0225608, 0.0373065, -0.0155318, -0.61538, 0.788078, 0.0407373, -0.787908, -0.614444, 0.0190012, -0.989874, -0.0041732 )
+bones/10/enabled = true
+bones/10/bound_children = [  ]
+bones/11/name = "Leg.Right"
+bones/11/parent = 10
+bones/11/rest = Transform( 0.997609, 0.056772, 0.0394169, -0.0663208, 0.625842, 0.777125, 0.0194502, -0.777881, 0.62811, -1.85374e-09, 0.29159, 1.25947e-07 )
+bones/11/enabled = true
+bones/11/bound_children = [  ]
+
+[node name="Character" type="MeshInstance" parent="Character/Take_Damage/Skeleton"]
+mesh = SubResource( 1 )
+skin = SubResource( 11 )
+material/0 = null
+material/1 = null
+material/2 = null
+material/3 = null
+material/4 = null
+
+[node name="CollisionShape" type="CollisionShape" parent="Character/Take_Damage"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.276197, 0 )
+shape = SubResource( 9 )
+
+[node name="Anim" type="AnimationPlayer" parent="Character"]
+autoplay = "Idle"
+playback_speed = 0.7
+anims/ArmatureAction = SubResource( 12 )
+"anims/ArmatureAction 2" = SubResource( 23 )
+anims/DJ = ExtResource( 5 )
+anims/Idle = SubResource( 14 )
+anims/Jump = SubResource( 6 )
+anims/RESET = SubResource( 24 )
+anims/Walk = SubResource( 7 )
+
+[node name="Anim2" type="AnimationPlayer" parent="Character"]
+playback_speed = 2.0
+anims/RESET = SubResource( 34 )
+anims/Run = SubResource( 35 )
+
+[node name="CollisionShape2" type="CollisionShape" parent="Character"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.323937, 0 )
+shape = SubResource( 8 )
+
+[node name="Deal_Damage" type="Area" parent="Character"]
+
+[node name="CollisionShape" type="CollisionShape" parent="Character/Deal_Damage"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.49743, 0 )
+shape = SubResource( 10 )
+
+[node name="Spatial_FixCAM" type="Spatial" parent="Character"]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, -0.30957, 3.46603, -19.2645 )
+
+[connection signal="timeout" from="Land/Platform_Fall/Fall" to="Land/Platform_Fall" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall/Respawn" to="Land/Platform_Fall" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall6/Fall" to="Land/Platform_Fall6" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall6/Respawn" to="Land/Platform_Fall6" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall7/Fall" to="Land/Platform_Fall7" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall7/Respawn" to="Land/Platform_Fall7" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall8/Fall" to="Land/Platform_Fall8" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall8/Respawn" to="Land/Platform_Fall8" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall9/Fall" to="Land/Platform_Fall9" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall9/Respawn" to="Land/Platform_Fall9" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall2/Fall" to="Land/Platform_Fall2" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall2/Respawn" to="Land/Platform_Fall2" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall3/Fall" to="Land/Platform_Fall3" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall3/Respawn" to="Land/Platform_Fall3" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall4/Fall" to="Land/Platform_Fall4" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall4/Respawn" to="Land/Platform_Fall4" method="_on_Respawn_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall5/Fall" to="Land/Platform_Fall5" method="_on_Fall_timeout"]
+[connection signal="timeout" from="Land/Platform_Fall5/Respawn" to="Land/Platform_Fall5" method="_on_Respawn_timeout"]
+[connection signal="animation_finished" from="GameOver/Anim" to="." method="_on_Anim_animation_finished"]
+[connection signal="animation_finished" from="Finish/AnimationPlayer" to="." method="_on_AnimationPlayer_animation_finished"]
+[connection signal="area_entered" from="Character/Take_Damage" to="." method="_on_Take_Damage_area_entered"]
+[connection signal="area_entered" from="Character/Deal_Damage" to="." method="_on_Deal_Damage_area_entered"]
+
+[editable path="Land/Platform_Fall"]
+[editable path="Land/Platform_Fall6"]
+[editable path="Land/Platform_Fall7"]
+[editable path="Land/Platform_Fall8"]
+[editable path="Land/Platform_Fall9"]
+[editable path="Land/Platform_Fall2"]
+[editable path="Land/Platform_Fall3"]
+[editable path="Land/Platform_Fall4"]
+[editable path="Land/Platform_Fall5"]
